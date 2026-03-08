@@ -1,0 +1,66 @@
+services:
+  # ─── PostgreSQL Database ─────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: taphoa-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: taphoa
+      POSTGRES_USER: taphoa_user
+      POSTGRES_PASSWORD: taphoa_secret_2026
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U taphoa_user -d taphoa" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── Backend API (Node.js + Express + PostgreSQL) ────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: taphoa-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgres://taphoa_user:taphoa_secret_2026@postgres:5432/taphoa
+      JWT_SECRET: dev-jwt-secret-change-this-in-production
+      JWT_EXPIRES_IN: 7d
+    ports:
+      - '3001:3001'
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - backend_uploads:/app/uploads
+    command: npm run dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+  # ─── Web Admin (Next.js) — placeholder for Phase 3 ──────
+  # web-admin:
+  #   build:
+  #     context: ./web-admin
+  #     dockerfile: Dockerfile
+  #   container_name: taphoa-web-admin
+  #   restart: unless-stopped
+  #   environment:
+  #     NEXT_PUBLIC_API_URL: http://backend:3001/api
+  #   ports:
+  #     - '3000:3000'
+  #   volumes:
+  #     - ./web-admin:/app
+  #     - /app/node_modules
+  #     - /app/.next
+  #   depends_on:
+  #     - backend
+
+volumes:
+  postgres_data:
+    driver: local
+  backend_uploads:
+    driver: local

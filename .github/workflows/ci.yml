@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: taphoa_user
+          POSTGRES_PASSWORD: taphoa_secret
+          POSTGRES_DB: taphoa_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://taphoa_user:taphoa_secret@localhost:5432/taphoa_test
+      JWT_SECRET: ci-test-jwt-secret-do-not-use-in-production
+      ACCESS_TOKEN_EXPIRES_IN: 7d
+      PORT: 3001
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Start server for integration tests
+        working-directory: backend
+        run: |
+          node src/index.js &
+          sleep 5
+          curl -f http://localhost:3001/api/health || exit 1
+
+      - name: Run tests
+        working-directory: backend
+        run: npm test
+
+      - name: Stop server
+        if: always()
+        run: kill $(lsof -t -i:3001) || true
