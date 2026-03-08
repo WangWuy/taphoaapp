@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -8,6 +9,7 @@ import '../providers/auth_provider.dart';
 import '../providers/product_provider.dart';
 import '../providers/cart_provider.dart';
 import '../widgets/product_card.dart';
+import '../widgets/shimmer_loading.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,6 +21,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _searchController = TextEditingController();
   bool _isSearching = false;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -32,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
@@ -49,66 +53,97 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildAppBar(authProvider, cartProvider),
             Expanded(
               child: productProvider.isLoading
-                  ? const Center(child: CircularProgressIndicator(color: AppColors.primaryStart))
-                  : RefreshIndicator(
-                      color: AppColors.primaryStart,
-                      onRefresh: () => productProvider.loadProducts(),
-                      child: CustomScrollView(
-                        slivers: [
-                          SliverToBoxAdapter(child: _buildBanner()),
-                          SliverToBoxAdapter(child: _buildCategories(productProvider)),
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    productProvider.selectedCategoryId == null ? 'Sản phẩm nổi bật' : productProvider.selectedCategoryName,
-                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                                  ),
-                                  Text('${productProvider.products.length} sản phẩm', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                                ],
-                              ),
-                            ),
-                          ),
-                          SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            sliver: AnimationLimiter(
-                              child: SliverGrid(
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 14, crossAxisSpacing: 14, childAspectRatio: 0.62),
-                                delegate: SliverChildBuilderDelegate(
-                                  (context, index) {
-                                    final product = productProvider.products[index];
-                                    return AnimationConfiguration.staggeredGrid(
-                                      position: index,
-                                      duration: const Duration(milliseconds: 400),
-                                      columnCount: 2,
-                                      child: ScaleAnimation(child: FadeInAnimation(child: ProductCard(
-                                        product: product,
-                                        onTap: () => Navigator.pushNamed(context, '/product-detail', arguments: product),
-                                        onAddToCart: () {
-                                          context.read<CartProvider>().addToCart(product.id);
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('Đã thêm ${product.name} vào giỏ'),
-                                              backgroundColor: const Color(0xFF059669),
-                                              behavior: SnackBarBehavior.floating,
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                              duration: const Duration(milliseconds: 1200),
-                                            ),
-                                          );
-                                        },
-                                      ))),
-                                    );
-                                  },
-                                  childCount: productProvider.products.length,
+                  ? const SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          SizedBox(height: 16),
+                          ProductGridSkeleton(count: 6),
+                        ],
+                      ),
+                    )
+                  : NotificationListener<ScrollNotification>(
+                      onNotification: (scrollInfo) {
+                        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200 &&
+                            !productProvider.isLoadingMore && productProvider.hasMore) {
+                          productProvider.loadMore();
+                        }
+                        return false;
+                      },
+                      child: RefreshIndicator(
+                        color: AppColors.primaryStart,
+                        onRefresh: () => productProvider.loadProducts(refresh: true),
+                        child: CustomScrollView(
+                          slivers: [
+                            SliverToBoxAdapter(child: _buildBanner()),
+                            SliverToBoxAdapter(child: _buildCategories(productProvider)),
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      productProvider.selectedCategoryId == null ? 'Sản phẩm nổi bật' : productProvider.selectedCategoryName,
+                                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                    ),
+                                    Text('${productProvider.products.length} sản phẩm', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                                  ],
                                 ),
                               ),
                             ),
-                          ),
-                          const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                        ],
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              sliver: AnimationLimiter(
+                                child: SliverGrid(
+                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 14, crossAxisSpacing: 14, childAspectRatio: 0.62),
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) {
+                                      final product = productProvider.products[index];
+                                      return AnimationConfiguration.staggeredGrid(
+                                        position: index,
+                                        duration: const Duration(milliseconds: 400),
+                                        columnCount: 2,
+                                        child: ScaleAnimation(child: FadeInAnimation(child: ProductCard(
+                                          product: product,
+                                          onTap: () => Navigator.pushNamed(context, '/product-detail', arguments: product),
+                                          onAddToCart: () {
+                                            context.read<CartProvider>().addToCart(product.id);
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text('Đã thêm ${product.name} vào giỏ'),
+                                                backgroundColor: const Color(0xFF059669),
+                                                behavior: SnackBarBehavior.floating,
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                                duration: const Duration(milliseconds: 1200),
+                                              ),
+                                            );
+                                          },
+                                        ))),
+                                      );
+                                    },
+                                    childCount: productProvider.products.length,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Load more indicator
+                            if (productProvider.isLoadingMore)
+                              const SliverToBoxAdapter(
+                                child: Padding(
+                                  padding: EdgeInsets.all(20),
+                                  child: Center(child: CircularProgressIndicator(color: AppColors.primaryStart, strokeWidth: 2)),
+                                ),
+                              ),
+                            if (!productProvider.hasMore && productProvider.products.isNotEmpty)
+                              const SliverToBoxAdapter(
+                                child: Padding(
+                                  padding: EdgeInsets.all(16),
+                                  child: Center(child: Text('Đã hiển thị tất cả sản phẩm', style: TextStyle(fontSize: 13, color: AppColors.textLight))),
+                                ),
+                              ),
+                            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                          ],
+                        ),
                       ),
                     ),
             ),
@@ -158,7 +193,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  onChanged: (value) => context.read<ProductProvider>().searchProducts(value),
+                  onChanged: (value) {
+                    _debounce?.cancel();
+                    _debounce = Timer(const Duration(milliseconds: 400), () {
+                      context.read<ProductProvider>().searchProducts(value);
+                    });
+                  },
                 ),
               ),
             ),

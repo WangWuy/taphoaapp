@@ -27,6 +27,39 @@ class Address {
     return parts.join(', ');
   }
 
+  Address copyWith({
+    String? id,
+    String? recipientName,
+    String? phone,
+    String? addressLine,
+    String? ward,
+    String? district,
+    String? city,
+    bool? isDefault,
+  }) {
+    return Address(
+      id: id ?? this.id,
+      recipientName: recipientName ?? this.recipientName,
+      phone: phone ?? this.phone,
+      addressLine: addressLine ?? this.addressLine,
+      ward: ward ?? this.ward,
+      district: district ?? this.district,
+      city: city ?? this.city,
+      isDefault: isDefault ?? this.isDefault,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'recipient_name': recipientName,
+    'phone': phone,
+    'address_line': addressLine,
+    'ward': ward,
+    'district': district,
+    'city': city,
+    'is_default': isDefault,
+  };
+
   factory Address.fromJson(Map<String, dynamic> json) {
     return Address(
       id: json['id'] ?? '',

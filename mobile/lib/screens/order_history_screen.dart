@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:intl/intl.dart';
 import '../constants/app_colors.dart';
 import '../providers/order_provider.dart';
 import '../models/order.dart';
+import '../widgets/shimmer_loading.dart';
+import '../utils/app_formatter.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   const OrderHistoryScreen({super.key});
@@ -25,7 +26,6 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final orderProvider = context.watch<OrderProvider>();
-    final currencyFormat = NumberFormat('#,##0', 'vi_VN');
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -47,7 +47,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             ),
             Expanded(
               child: orderProvider.isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryStart))
+          ? const ListItemSkeleton(count: 4)
           : orderProvider.orders.isEmpty
               ? Center(
                   child: Column(
@@ -56,10 +56,22 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                       Icon(Icons.receipt_long_rounded, size: 80, color: AppColors.textLight.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
                       const Text('Chưa có đơn hàng nào', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                      const SizedBox(height: 8),
+                      const Text('Đặt hàng đầu tiên ngay nào!', style: TextStyle(fontSize: 14, color: AppColors.textLight)),
+                      const SizedBox(height: 20),
+                      GestureDetector(
+                        onTap: () => Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          decoration: BoxDecoration(gradient: AppColors.primaryGradient, borderRadius: BorderRadius.circular(12)),
+                          child: const Text('Mua sắm ngay', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
                     ],
                   ),
                 )
               : RefreshIndicator(
+                  color: AppColors.primaryStart,
                   onRefresh: () => orderProvider.loadOrders(),
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
@@ -67,7 +79,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final order = orderProvider.orders[index];
-                      return _buildOrderCard(context, order, currencyFormat, orderProvider, index);
+                      return _buildOrderCard(context, order, orderProvider, index);
                     },
                   ),
                 ),
@@ -78,7 +90,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     );
   }
 
-  Widget _buildOrderCard(BuildContext context, Order order, NumberFormat fmt, OrderProvider orderProvider, int index) {
+  Widget _buildOrderCard(BuildContext context, Order order, OrderProvider orderProvider, int index) {
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/order-detail', arguments: order.id),
       child: Container(
@@ -112,7 +124,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Tổng cộng:', style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
-              Text('${fmt.format(order.total)}₫', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.primaryStart)),
+              Text(AppFormatter.currency(order.total), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.primaryStart)),
             ],
           ),
           if (order.canCancel) ...[

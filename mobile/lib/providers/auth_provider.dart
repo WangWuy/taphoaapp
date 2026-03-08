@@ -22,9 +22,11 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> tryAutoLogin() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
+    final refreshToken = prefs.getString('refresh_token');
     if (token == null) return false;
 
     _api.setToken(token);
+    _api.setRefreshToken(refreshToken);
     final response = await _api.get(ApiConstants.me);
 
     if (response.success && response.data != null) {
@@ -34,7 +36,9 @@ class AuthProvider extends ChangeNotifier {
     } else {
       // Token expired or invalid
       _api.setToken(null);
+      _api.setRefreshToken(null);
       await prefs.remove('auth_token');
+      await prefs.remove('refresh_token');
       return false;
     }
   }
@@ -55,14 +59,23 @@ class AuthProvider extends ChangeNotifier {
     if (response.success && response.data != null) {
       _currentUser = User.fromJson(response.data['user']);
       final token = response.data['token'] as String;
+      final refreshToken = response.data['refreshToken'] as String?;
       _api.setToken(token);
+      _api.setRefreshToken(refreshToken);
 
-      // Save token
+      // Save tokens
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', token);
+      if (refreshToken != null) {
+        await prefs.setString('refresh_token', refreshToken);
+      }
 
       // Register push notifications
-      try { await PushNotificationService().init(); } catch (_) {}
+      try {
+        await PushNotificationService().init();
+      } catch (e) {
+        debugPrint('⚠️ Push notification init failed: $e');
+      }
 
       notifyListeners();
       return true;
@@ -96,13 +109,22 @@ class AuthProvider extends ChangeNotifier {
     if (response.success && response.data != null) {
       _currentUser = User.fromJson(response.data['user']);
       final token = response.data['token'] as String;
+      final refreshToken = response.data['refreshToken'] as String?;
       _api.setToken(token);
+      _api.setRefreshToken(refreshToken);
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', token);
+      if (refreshToken != null) {
+        await prefs.setString('refresh_token', refreshToken);
+      }
 
       // Register push notifications
-      try { await PushNotificationService().init(); } catch (_) {}
+      try {
+        await PushNotificationService().init();
+      } catch (e) {
+        debugPrint('⚠️ Push notification init failed: $e');
+      }
 
       notifyListeners();
       return true;
@@ -162,12 +184,18 @@ class AuthProvider extends ChangeNotifier {
   // Logout
   Future<void> logout() async {
     // Remove FCM token
-    try { await PushNotificationService().removeToken(); } catch (_) {}
+    try {
+      await PushNotificationService().removeToken();
+    } catch (e) {
+      debugPrint('⚠️ FCM token removal failed: $e');
+    }
 
     _currentUser = null;
     _api.setToken(null);
+    _api.setRefreshToken(null);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
+    await prefs.remove('refresh_token');
     notifyListeners();
   }
 }

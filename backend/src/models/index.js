@@ -26,6 +26,7 @@ const RefreshToken = require('./RefreshToken')(sequelize);
 const PasswordReset = require('./PasswordReset')(sequelize);
 const Setting = require('./Setting')(sequelize);
 const DeviceToken = require('./DeviceToken')(sequelize);
+const Wishlist = require('./Wishlist')(sequelize);
 
 const models = {
     User,
@@ -40,6 +41,7 @@ const models = {
     PasswordReset,
     Setting,
     DeviceToken,
+    Wishlist,
 };
 
 // Run associations

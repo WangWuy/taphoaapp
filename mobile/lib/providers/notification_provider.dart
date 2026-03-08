@@ -23,13 +23,8 @@ class NotificationProvider extends ChangeNotifier {
       _notifications = (response.data as List)
           .map((e) => AppNotification.fromJson(e))
           .toList();
-      // unreadCount is in the response root
-      if (response.pagination != null) {
-        // Check for unreadCount in the raw response
-      }
     }
 
-    // Also get unread count from response
     _unreadCount = _notifications.where((n) => !n.isRead).length;
 
     _isLoading = false;
@@ -41,18 +36,9 @@ class NotificationProvider extends ChangeNotifier {
     if (response.success) {
       final index = _notifications.indexWhere((n) => n.id == notificationId);
       if (index != -1) {
-        // Replace with updated version
-        _notifications[index] = AppNotification(
-          id: _notifications[index].id,
-          userId: _notifications[index].userId,
-          title: _notifications[index].title,
-          message: _notifications[index].message,
-          type: _notifications[index].type,
-          referenceType: _notifications[index].referenceType,
-          referenceId: _notifications[index].referenceId,
+        _notifications[index] = _notifications[index].copyWith(
           isRead: true,
           readAt: DateTime.now(),
-          createdAt: _notifications[index].createdAt,
         );
         _unreadCount = _notifications.where((n) => !n.isRead).length;
         notifyListeners();
@@ -63,17 +49,9 @@ class NotificationProvider extends ChangeNotifier {
   Future<void> markAllAsRead() async {
     final response = await _api.patch('${ApiConstants.notifications}/read-all');
     if (response.success) {
-      _notifications = _notifications.map((n) => AppNotification(
-        id: n.id,
-        userId: n.userId,
-        title: n.title,
-        message: n.message,
-        type: n.type,
-        referenceType: n.referenceType,
-        referenceId: n.referenceId,
+      _notifications = _notifications.map((n) => n.copyWith(
         isRead: true,
         readAt: DateTime.now(),
-        createdAt: n.createdAt,
       )).toList();
       _unreadCount = 0;
       notifyListeners();

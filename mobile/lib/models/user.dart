@@ -19,6 +19,36 @@ class User {
 
   bool get isAdmin => role == 'admin';
 
+  User copyWith({
+    String? id,
+    String? name,
+    String? email,
+    String? phone,
+    String? role,
+    String? avatarUrl,
+    bool? isActive,
+  }) {
+    return User(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      role: role ?? this.role,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      isActive: isActive ?? this.isActive,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'email': email,
+    'phone': phone,
+    'role': role,
+    'avatar_url': avatarUrl,
+    'is_active': isActive,
+  };
+
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'] ?? '',

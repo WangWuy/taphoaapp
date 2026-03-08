@@ -7,9 +7,9 @@ import '../constants/app_colors.dart';
 import '../providers/cart_provider.dart';
 import '../providers/order_provider.dart';
 import '../providers/address_provider.dart';
+import '../providers/config_provider.dart';
 import '../models/address.dart';
 import '../widgets/custom_button.dart';
-import '../services/api_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -20,20 +20,19 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final _noteController = TextEditingController();
-  final ApiService _api = ApiService();
   String _paymentMethod = 'cod';
   Address? _selectedAddress;
-
-  // Dynamic config
-  Map<String, dynamic>? _bankInfo;
-  List<Map<String, dynamic>> _shippingRules = [];
-  bool _configLoaded = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await context.read<AddressProvider>().loadAddresses();
+      final config = context.read<ConfigProvider>();
+      if (!config.isLoaded) await config.loadConfig();
+
+      if (mounted) {
+        await context.read<AddressProvider>().loadAddresses();
+      }
       if (mounted) {
         final defaultAddr = context.read<AddressProvider>().defaultAddress;
         if (defaultAddr != null) {
@@ -41,44 +40,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         }
       }
     });
-    _loadConfig();
-  }
-
-  Future<void> _loadConfig() async {
-    final response = await _api.get('/config');
-    if (response.success && response.data != null) {
-      setState(() {
-        _bankInfo = response.data['bank'] as Map<String, dynamic>?;
-        final shipping = response.data['shipping'] as Map<String, dynamic>? ?? {};
-        _shippingRules = List<Map<String, dynamic>>.from(shipping['rules'] ?? []);
-        _configLoaded = true;
-      });
-    } else {
-      // Fallback defaults
-      setState(() {
-        _shippingRules = [
-          {'min_order': 0, 'max_order': 150000, 'fee': 10000},
-          {'min_order': 150000, 'max_order': null, 'fee': 0},
-        ];
-        _configLoaded = true;
-      });
-    }
-  }
-
-  double _calculateShippingFee(double orderTotal) {
-    for (final rule in _shippingRules) {
-      final minOrder = (rule['min_order'] ?? 0).toDouble();
-      final maxOrder = rule['max_order'];
-      final fee = (rule['fee'] ?? 0).toDouble();
-
-      if (maxOrder == null) {
-        // This is the last rule (no upper bound)
-        if (orderTotal >= minOrder) return fee;
-      } else {
-        if (orderTotal >= minOrder && orderTotal < maxOrder.toDouble()) return fee;
-      }
-    }
-    return 0;
   }
 
   @override
@@ -92,9 +53,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final cartProvider = context.watch<CartProvider>();
     final addressProvider = context.watch<AddressProvider>();
     final orderProvider = context.watch<OrderProvider>();
+    final configProvider = context.watch<ConfigProvider>();
     final currencyFormat = NumberFormat('#,##0', 'vi_VN');
 
-    final double shippingFee = _calculateShippingFee(cartProvider.totalPrice);
+    final double shippingFee = configProvider.calculateShippingFee(cartProvider.totalPrice);
     final bool isFreeShip = shippingFee == 0;
     final double grandTotal = cartProvider.totalPrice + shippingFee;
 
@@ -107,7 +69,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         title: const Text('Đặt hàng', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 18)),
         centerTitle: true,
       ),
-      body: !_configLoaded
+      body: !configProvider.isLoaded
           ? const Center(child: CircularProgressIndicator(color: AppColors.primaryStart))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -139,15 +101,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             ),
                           ],
                         ),
-                        if (_shippingRules.isNotEmpty) ...[
+                        if (configProvider.shippingRules.isNotEmpty) ...[
                           const SizedBox(height: 8),
                           const Divider(height: 1),
                           const SizedBox(height: 8),
-                          ..._shippingRules.map((rule) {
+                          ...configProvider.shippingRules.map((rule) {
                             final minOrder = (rule['min_order'] ?? 0).toDouble();
                             final maxOrder = rule['max_order'];
                             final fee = (rule['fee'] ?? 0).toDouble();
-                            final isCurrentRule = _calculateShippingFee(cartProvider.totalPrice) == fee && (
+                            final isCurrentRule = configProvider.calculateShippingFee(cartProvider.totalPrice) == fee && (
                               (maxOrder == null && cartProvider.totalPrice >= minOrder) ||
                               (maxOrder != null && cartProvider.totalPrice >= minOrder && cartProvider.totalPrice < maxOrder.toDouble())
                             );
@@ -183,9 +145,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const SizedBox(height: 8),
                   _buildPaymentOptions(),
 
-                  if (_paymentMethod == 'bank_transfer' && _bankInfo != null) ...[
+                  if (_paymentMethod == 'bank_transfer' && configProvider.bankInfo != null) ...[
                     const SizedBox(height: 12),
-                    _buildBankInfo(),
+                    _buildBankInfo(configProvider.bankInfo!),
                   ],
 
                   const SizedBox(height: 20),
@@ -390,7 +352,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildBankInfo() {
+  Widget _buildBankInfo(Map<String, dynamic> bankInfo) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -409,10 +371,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          _buildBankRow('Ngân hàng', _bankInfo?['bankName'] ?? 'N/A'),
-          _buildBankRow('Số TK', _bankInfo?['accountNumber'] ?? 'N/A', copyable: true),
-          _buildBankRow('Chủ TK', _bankInfo?['accountHolder'] ?? 'N/A'),
-          if (_bankInfo?['branch'] != null) _buildBankRow('Chi nhánh', _bankInfo!['branch']),
+          _buildBankRow('Ngân hàng', bankInfo['bankName'] ?? 'N/A'),
+          _buildBankRow('Số TK', bankInfo['accountNumber'] ?? 'N/A', copyable: true),
+          _buildBankRow('Chủ TK', bankInfo['accountHolder'] ?? 'N/A'),
+          if (bankInfo['branch'] != null) _buildBankRow('Chi nhánh', bankInfo['branch']),
           const SizedBox(height: 8),
           const Text('💡 Nội dung CK: Ghi SĐT của bạn', style: TextStyle(fontSize: 12, color: Color(0xFF0369A1), fontStyle: FontStyle.italic)),
         ],

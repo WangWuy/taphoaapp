@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
 
 class ApiService {
@@ -10,12 +11,17 @@ class ApiService {
   ApiService._internal();
 
   String? _token;
+  String? _refreshToken;
+  bool _isRefreshing = false;
 
-  void setToken(String? token) {
-    _token = token;
-  }
+  static const Duration _timeout = Duration(seconds: 15);
+  static const int _maxRetries = 2;
+
+  void setToken(String? token) => _token = token;
+  void setRefreshToken(String? token) => _refreshToken = token;
 
   String? get token => _token;
+  String? get refreshToken => _refreshToken;
 
   Map<String, String> get _headers {
     final headers = <String, String>{
@@ -39,77 +45,79 @@ class ApiService {
     );
   }
 
+  // ─── Token Refresh ────────────────────────────────────
+  Future<bool> _tryRefreshToken() async {
+    if (_isRefreshing || _refreshToken == null) return false;
+    _isRefreshing = true;
+
+    try {
+      final response = await http.post(
+        _buildUri('/auth/refresh'),
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: jsonEncode({'refreshToken': _refreshToken}),
+      ).timeout(_timeout);
+
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['status'] == 'success') {
+        final newToken = body['data']['token'] as String;
+        _token = newToken;
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', newToken);
+
+        debugPrint('🔄 Token refreshed successfully');
+        _isRefreshing = false;
+        return true;
+      }
+    } catch (e) {
+      debugPrint('🔄 Token refresh failed: $e');
+    }
+
+    _isRefreshing = false;
+    return false;
+  }
+
   // ─── GET ────────────────────────────────────────────────
   Future<ApiResponse> get(String path, {Map<String, String>? queryParams}) async {
-    try {
-      final response = await http.get(
-        _buildUri(path, queryParams),
-        headers: _headers,
-      );
-      return _processResponse(response);
-    } catch (e) {
-      debugPrint('GET $path error: $e');
-      return ApiResponse(success: false, message: 'Lỗi kết nối: $e');
-    }
+    return _requestWithRetry(() => http.get(
+      _buildUri(path, queryParams),
+      headers: _headers,
+    ).timeout(_timeout), 'GET', path);
   }
 
   // ─── POST ───────────────────────────────────────────────
   Future<ApiResponse> post(String path, {Map<String, dynamic>? body}) async {
-    try {
-      final response = await http.post(
-        _buildUri(path),
-        headers: _headers,
-        body: body != null ? jsonEncode(body) : null,
-      );
-      return _processResponse(response);
-    } catch (e) {
-      debugPrint('POST $path error: $e');
-      return ApiResponse(success: false, message: 'Lỗi kết nối: $e');
-    }
+    return _requestWithRetry(() => http.post(
+      _buildUri(path),
+      headers: _headers,
+      body: body != null ? jsonEncode(body) : null,
+    ).timeout(_timeout), 'POST', path);
   }
 
   // ─── PUT ────────────────────────────────────────────────
   Future<ApiResponse> put(String path, {Map<String, dynamic>? body}) async {
-    try {
-      final response = await http.put(
-        _buildUri(path),
-        headers: _headers,
-        body: body != null ? jsonEncode(body) : null,
-      );
-      return _processResponse(response);
-    } catch (e) {
-      debugPrint('PUT $path error: $e');
-      return ApiResponse(success: false, message: 'Lỗi kết nối: $e');
-    }
+    return _requestWithRetry(() => http.put(
+      _buildUri(path),
+      headers: _headers,
+      body: body != null ? jsonEncode(body) : null,
+    ).timeout(_timeout), 'PUT', path);
   }
 
   // ─── PATCH ──────────────────────────────────────────────
   Future<ApiResponse> patch(String path, {Map<String, dynamic>? body}) async {
-    try {
-      final response = await http.patch(
-        _buildUri(path),
-        headers: _headers,
-        body: body != null ? jsonEncode(body) : null,
-      );
-      return _processResponse(response);
-    } catch (e) {
-      debugPrint('PATCH $path error: $e');
-      return ApiResponse(success: false, message: 'Lỗi kết nối: $e');
-    }
+    return _requestWithRetry(() => http.patch(
+      _buildUri(path),
+      headers: _headers,
+      body: body != null ? jsonEncode(body) : null,
+    ).timeout(_timeout), 'PATCH', path);
   }
 
   // ─── DELETE ─────────────────────────────────────────────
   Future<ApiResponse> delete(String path) async {
-    try {
-      final response = await http.delete(
-        _buildUri(path),
-        headers: _headers,
-      );
-      return _processResponse(response);
-    } catch (e) {
-      debugPrint('DELETE $path error: $e');
-      return ApiResponse(success: false, message: 'Lỗi kết nối: $e');
-    }
+    return _requestWithRetry(() => http.delete(
+      _buildUri(path),
+      headers: _headers,
+    ).timeout(_timeout), 'DELETE', path);
   }
 
   // ─── UPLOAD IMAGE ──────────────────────────────────────
@@ -122,13 +130,44 @@ class ApiService {
       }
       request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
 
-      final streamedResponse = await request.send();
+      final streamedResponse = await request.send().timeout(_timeout);
       final response = await http.Response.fromStream(streamedResponse);
       return _processResponse(response);
     } catch (e) {
       debugPrint('UPLOAD error: $e');
-      return ApiResponse(success: false, message: 'Lỗi upload: $e');
+      return ApiResponse(success: false, message: _friendlyError(e));
     }
+  }
+
+  // ─── Request with auto-retry on 401 ───────────────────
+  Future<ApiResponse> _requestWithRetry(
+    Future<http.Response> Function() request,
+    String method,
+    String path,
+  ) async {
+    for (int attempt = 0; attempt <= _maxRetries; attempt++) {
+      try {
+        final response = await request();
+        final result = _processResponse(response);
+
+        // Auto-refresh on 401 (first attempt only)
+        if (response.statusCode == 401 && attempt == 0 && _refreshToken != null) {
+          final refreshed = await _tryRefreshToken();
+          if (refreshed) continue; // Retry with new token
+        }
+
+        return result;
+      } catch (e) {
+        debugPrint('$method $path error (attempt ${attempt + 1}): $e');
+        if (attempt == _maxRetries) {
+          return ApiResponse(success: false, message: _friendlyError(e));
+        }
+        // Brief pause before retry
+        await Future.delayed(Duration(milliseconds: 500 * (attempt + 1)));
+      }
+    }
+
+    return ApiResponse(success: false, message: 'Lỗi không xác định');
   }
 
   // ─── Process Response ───────────────────────────────────
@@ -156,6 +195,20 @@ class ApiService {
         statusCode: response.statusCode,
       );
     }
+  }
+
+  // ─── Friendly Error Messages ───────────────────────────
+  String _friendlyError(dynamic error) {
+    if (error is SocketException) {
+      return 'Không thể kết nối server. Kiểm tra kết nối mạng.';
+    }
+    if (error.toString().contains('TimeoutException')) {
+      return 'Server phản hồi quá chậm. Vui lòng thử lại.';
+    }
+    if (error.toString().contains('HandshakeException')) {
+      return 'Lỗi bảo mật kết nối. Vui lòng thử lại.';
+    }
+    return 'Lỗi kết nối: ${error.toString().length > 80 ? error.toString().substring(0, 80) : error}';
   }
 }
 

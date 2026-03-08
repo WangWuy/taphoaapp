@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../constants/app_colors.dart';
 import '../providers/notification_provider.dart';
 import '../models/app_notification.dart';
+import '../widgets/shimmer_loading.dart';
+import '../utils/app_formatter.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -79,7 +81,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             // Notification list
             Expanded(
               child: provider.isLoading
-                  ? const Center(child: CircularProgressIndicator(color: AppColors.primaryStart))
+                  ? const NotificationSkeleton(count: 5)
                   : provider.notifications.isEmpty
                       ? Center(
                           child: Column(
@@ -116,12 +118,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget _buildNotificationCard(AppNotification notification, int index, NotificationProvider provider) {
     final icon = _getNotificationIcon(notification.type);
     final color = _getNotificationColor(notification.type);
-    final timeAgo = _formatTimeAgo(notification.createdAt);
+    final timeAgo = AppFormatter.timeAgo(notification.createdAt);
 
     return GestureDetector(
       onTap: () {
         if (!notification.isRead) {
           provider.markAsRead(notification.id);
+        }
+        // Navigate to order detail if notification references an order
+        if (notification.referenceType == 'order' && notification.referenceId != null) {
+          Navigator.pushNamed(context, '/order-detail', arguments: notification.referenceId);
         }
       },
       child: Container(
@@ -212,16 +218,5 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'system': return const Color(0xFFF59E0B);
       default: return const Color(0xFF8B5CF6);
     }
-  }
-
-  String _formatTimeAgo(DateTime dateTime) {
-    final now = DateTime.now();
-    final diff = now.difference(dateTime);
-
-    if (diff.inMinutes < 1) return 'Vừa xong';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} phút trước';
-    if (diff.inHours < 24) return '${diff.inHours} giờ trước';
-    if (diff.inDays < 7) return '${diff.inDays} ngày trước';
-    return DateFormat('dd/MM/yyyy').format(dateTime);
   }
 }

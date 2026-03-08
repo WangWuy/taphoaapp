@@ -56,6 +56,7 @@ app.use('/api/cart', require('./routes/cart'));
 app.use('/api/addresses', require('./routes/addresses'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/wishlist', require('./routes/wishlist'));
 
 // Admin routes
 app.use('/api/admin/orders', require('./routes/admin/orders'));

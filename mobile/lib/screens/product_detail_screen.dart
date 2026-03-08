@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:intl/intl.dart';
 import '../constants/app_colors.dart';
 import '../models/product.dart';
 import '../providers/cart_provider.dart';
+import '../providers/wishlist_provider.dart';
+import '../utils/app_formatter.dart';
 import '../widgets/custom_button.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -22,7 +23,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final product = ModalRoute.of(context)!.settings.arguments as Product;
-    final currencyFormat = NumberFormat('#,###', 'vi_VN');
+    final wishlist = context.watch<WishlistProvider>();
+    final isWished = wishlist.isInWishlist(product.id);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -44,6 +46,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 child: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
               ),
             ),
+            actions: [
+              GestureDetector(
+                onTap: () => wishlist.toggleWishlist(product),
+                child: Container(
+                  margin: const EdgeInsets.all(8),
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8)],
+                  ),
+                  child: Icon(
+                    isWished ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    color: isWished ? AppColors.error : AppColors.textPrimary,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: 'product_${product.id}',
@@ -92,10 +113,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text('${currencyFormat.format(product.price)}₫', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.priceColor)),
+                        Text(AppFormatter.currency(product.price), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.priceColor)),
                         if (product.isOnSale) ...[
                           const SizedBox(width: 10),
-                          Text('${currencyFormat.format(product.compareAtPrice!)}₫', style: const TextStyle(fontSize: 16, color: AppColors.originalPriceColor, decoration: TextDecoration.lineThrough)),
+                          Text(AppFormatter.currency(product.compareAtPrice!), style: const TextStyle(fontSize: 16, color: AppColors.originalPriceColor, decoration: TextDecoration.lineThrough)),
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

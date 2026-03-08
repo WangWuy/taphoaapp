@@ -15,6 +15,30 @@ class Category {
     this.isActive = true,
   });
 
+  Category copyWith({
+    int? id,
+    String? name,
+    String? slug,
+    String? imageUrl,
+    bool? isActive,
+  }) {
+    return Category(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      slug: slug ?? this.slug,
+      imageUrl: imageUrl ?? this.imageUrl,
+      isActive: isActive ?? this.isActive,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'slug': slug,
+    'image_url': imageUrl,
+    'is_active': isActive,
+  };
+
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
       id: json['id'] ?? 0,

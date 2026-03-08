@@ -12,6 +12,8 @@ import 'providers/cart_provider.dart';
 import 'providers/order_provider.dart';
 import 'providers/address_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/config_provider.dart';
+import 'providers/wishlist_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/login_screen.dart';
@@ -35,6 +37,7 @@ import 'screens/profile_edit_screen.dart';
 import 'screens/change_password_screen.dart';
 import 'screens/order_detail_screen.dart';
 import 'screens/forgot_password_screen.dart';
+import 'screens/wishlist_screen.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 
@@ -71,6 +74,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => OrderProvider()),
         ChangeNotifierProvider(create: (_) => AddressProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => ConfigProvider()),
+        ChangeNotifierProvider(create: (_) => WishlistProvider()),
       ],
       child: MaterialApp(
         title: 'TạpHóa Shop',
@@ -138,6 +143,7 @@ class MyApp extends StatelessWidget {
           '/change-password': (context) => const ChangePasswordScreen(),
           '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/admin-dashboard': (context) => const AdminDashboardScreen(),
+          '/wishlist': (context) => const WishlistScreen(),
         },
       ),
     );

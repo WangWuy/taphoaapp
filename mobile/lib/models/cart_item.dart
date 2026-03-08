@@ -15,6 +15,27 @@ class CartItem {
 
   double get subtotal => product.price * quantity;
 
+  CartItem copyWith({
+    String? id,
+    String? productId,
+    int? quantity,
+    Product? product,
+  }) {
+    return CartItem(
+      id: id ?? this.id,
+      productId: productId ?? this.productId,
+      quantity: quantity ?? this.quantity,
+      product: product ?? this.product,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'product_id': productId,
+    'quantity': quantity,
+    'product': product.toJson(),
+  };
+
   factory CartItem.fromJson(Map<String, dynamic> json) {
     return CartItem(
       id: json['id'] ?? '',

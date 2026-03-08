@@ -5,20 +5,37 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import '../constants/app_colors.dart';
 import '../providers/cart_provider.dart';
+import '../providers/config_provider.dart';
 import '../widgets/custom_button.dart';
 
-class CartScreen extends StatelessWidget {
+class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
+
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final config = context.read<ConfigProvider>();
+      if (!config.isLoaded) config.loadConfig();
+      context.read<CartProvider>().loadCart();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final cartProvider = context.watch<CartProvider>();
+    final configProvider = context.watch<ConfigProvider>();
     final currencyFormat = NumberFormat('#,##0', 'vi_VN');
 
-    const double freeShipThreshold = 150000;
-    const double shippingFee = 10000;
-    final bool isFreeShip = cartProvider.totalPrice >= freeShipThreshold;
-    final double actualShipping = cartProvider.items.isEmpty ? 0 : (isFreeShip ? 0 : shippingFee);
+    final double shippingFee = configProvider.calculateShippingFee(cartProvider.totalPrice);
+    final bool isFreeShip = shippingFee == 0;
+    final double freeShipThreshold = configProvider.freeShipThreshold;
+    final double actualShipping = cartProvider.items.isEmpty ? 0 : shippingFee;
     final double grandTotal = cartProvider.totalPrice + actualShipping;
 
     return Scaffold(

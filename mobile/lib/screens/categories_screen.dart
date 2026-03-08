@@ -106,6 +106,14 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 children: [
                   Expanded(
                     child: GestureDetector(
+                    onTap: () {
+                      // Navigate to Home tab with search active
+                      final mainScreenState = context.findAncestorStateOfType<State>();
+                      if (mainScreenState != null && mainScreenState.mounted) {
+                        // Navigate to home tab (index 0) via MainScreen
+                        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+                      }
+                    },
                     child: Container(
                         height: 38,
                         padding: const EdgeInsets.symmetric(horizontal: 12),

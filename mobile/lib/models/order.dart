@@ -50,6 +50,58 @@ class Order {
     }
   }
 
+  Order copyWith({
+    String? id,
+    String? orderNumber,
+    String? status,
+    String? paymentMethod,
+    String? paymentStatus,
+    double? subtotal,
+    double? shippingFee,
+    double? total,
+    String? note,
+    String? createdAt,
+    String? cancelledAt,
+    String? deliveredAt,
+    List<OrderItem>? items,
+    OrderAddress? shippingAddress,
+    OrderCustomer? customer,
+  }) {
+    return Order(
+      id: id ?? this.id,
+      orderNumber: orderNumber ?? this.orderNumber,
+      status: status ?? this.status,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      subtotal: subtotal ?? this.subtotal,
+      shippingFee: shippingFee ?? this.shippingFee,
+      total: total ?? this.total,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      cancelledAt: cancelledAt ?? this.cancelledAt,
+      deliveredAt: deliveredAt ?? this.deliveredAt,
+      items: items ?? this.items,
+      shippingAddress: shippingAddress ?? this.shippingAddress,
+      customer: customer ?? this.customer,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'order_number': orderNumber,
+    'status': status,
+    'payment_method': paymentMethod,
+    'payment_status': paymentStatus,
+    'subtotal': subtotal,
+    'shipping_fee': shippingFee,
+    'total': total,
+    'note': note,
+    'created_at': createdAt,
+    'cancelled_at': cancelledAt,
+    'delivered_at': deliveredAt,
+    'items': items.map((e) => e.toJson()).toList(),
+  };
+
   factory Order.fromJson(Map<String, dynamic> json) {
     final itemsList = (json['items'] as List<dynamic>?) ?? [];
     final addressMap = json['shippingAddress'] as Map<String, dynamic>?;
@@ -101,6 +153,35 @@ class OrderItem {
     this.productImageUrl,
   });
 
+  OrderItem copyWith({
+    String? id,
+    String? productId,
+    String? productName,
+    double? productPrice,
+    int? quantity,
+    double? subtotal,
+    String? productImageUrl,
+  }) {
+    return OrderItem(
+      id: id ?? this.id,
+      productId: productId ?? this.productId,
+      productName: productName ?? this.productName,
+      productPrice: productPrice ?? this.productPrice,
+      quantity: quantity ?? this.quantity,
+      subtotal: subtotal ?? this.subtotal,
+      productImageUrl: productImageUrl ?? this.productImageUrl,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'product_id': productId,
+    'product_name': productName,
+    'product_price': productPrice,
+    'quantity': quantity,
+    'subtotal': subtotal,
+  };
+
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     final product = json['product'] as Map<String, dynamic>?;
     return OrderItem(
@@ -140,6 +221,33 @@ class OrderAddress {
     return parts.join(', ');
   }
 
+  OrderAddress copyWith({
+    String? recipientName,
+    String? phone,
+    String? addressLine,
+    String? ward,
+    String? district,
+    String? city,
+  }) {
+    return OrderAddress(
+      recipientName: recipientName ?? this.recipientName,
+      phone: phone ?? this.phone,
+      addressLine: addressLine ?? this.addressLine,
+      ward: ward ?? this.ward,
+      district: district ?? this.district,
+      city: city ?? this.city,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'recipient_name': recipientName,
+    'phone': phone,
+    'address_line': addressLine,
+    'ward': ward,
+    'district': district,
+    'city': city,
+  };
+
   factory OrderAddress.fromJson(Map<String, dynamic> json) {
     return OrderAddress(
       recipientName: json['recipient_name'] ?? '',
@@ -164,6 +272,27 @@ class OrderCustomer {
     required this.phone,
     this.email,
   });
+
+  OrderCustomer copyWith({
+    String? id,
+    String? name,
+    String? phone,
+    String? email,
+  }) {
+    return OrderCustomer(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'phone': phone,
+    'email': email,
+  };
 
   factory OrderCustomer.fromJson(Map<String, dynamic> json) {
     return OrderCustomer(

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../models/product.dart';
+import '../providers/wishlist_provider.dart';
+import '../utils/app_formatter.dart';
 
 class ProductCard extends StatefulWidget {
   final Product product;
@@ -33,7 +35,8 @@ class _ProductCardState extends State<ProductCard> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormat = NumberFormat('#,###', 'vi_VN');
+    final wishlist = context.watch<WishlistProvider>();
+    final isWished = wishlist.isInWishlist(widget.product.id);
 
     return GestureDetector(
       onTap: widget.onTap,
@@ -88,13 +91,24 @@ class _ProductCardState extends State<ProductCard> with SingleTickerProviderStat
                       ),
                     ),
 
-                  // Unit badge
+                  // Wishlist heart button
                   Positioned(
                     top: 8, right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(8)),
-                      child: Text(widget.product.unit, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                    child: GestureDetector(
+                      onTap: () => wishlist.toggleWishlist(widget.product),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 32, height: 32,
+                        decoration: BoxDecoration(
+                          color: isWished ? AppColors.error.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.4),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isWished ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                          color: isWished ? AppColors.error : Colors.white,
+                          size: 18,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -119,10 +133,10 @@ class _ProductCardState extends State<ProductCard> with SingleTickerProviderStat
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text('${currencyFormat.format(widget.product.price)}₫', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.priceColor)),
+                              Text(AppFormatter.currency(widget.product.price), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.priceColor)),
                               if (widget.product.isOnSale) ...[
                                 const SizedBox(height: 1),
-                                Text('${currencyFormat.format(widget.product.compareAtPrice!)}₫', style: const TextStyle(fontSize: 11, color: AppColors.originalPriceColor, decoration: TextDecoration.lineThrough)),
+                                Text(AppFormatter.currency(widget.product.compareAtPrice!), style: const TextStyle(fontSize: 11, color: AppColors.originalPriceColor, decoration: TextDecoration.lineThrough)),
                               ],
                             ],
                           ),

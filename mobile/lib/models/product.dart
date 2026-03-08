@@ -35,6 +35,47 @@ class Product {
     return ((1 - price / compareAtPrice!) * 100).round();
   }
 
+  Product copyWith({
+    String? id,
+    int? categoryId,
+    String? name,
+    String? description,
+    double? price,
+    double? compareAtPrice,
+    String? unit,
+    int? stockQuantity,
+    String? imageUrl,
+    bool? isActive,
+    String? categoryName,
+  }) {
+    return Product(
+      id: id ?? this.id,
+      categoryId: categoryId ?? this.categoryId,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      price: price ?? this.price,
+      compareAtPrice: compareAtPrice ?? this.compareAtPrice,
+      unit: unit ?? this.unit,
+      stockQuantity: stockQuantity ?? this.stockQuantity,
+      imageUrl: imageUrl ?? this.imageUrl,
+      isActive: isActive ?? this.isActive,
+      categoryName: categoryName ?? this.categoryName,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'category_id': categoryId,
+    'name': name,
+    'description': description,
+    'price': price,
+    'compare_at_price': compareAtPrice,
+    'unit': unit,
+    'stock_quantity': stockQuantity,
+    'image_url': imageUrl,
+    'is_active': isActive,
+  };
+
   factory Product.fromJson(Map<String, dynamic> json) {
     final category = json['category'] as Map<String, dynamic>?;
     return Product(

@@ -141,7 +141,7 @@ class ProfileScreen extends StatelessWidget {
             icon: Icons.favorite_border_rounded,
             iconColor: const Color(0xFFEC4899),
             title: 'Sản phẩm yêu thích',
-            onTap: () {},
+            onTap: () => Navigator.pushNamed(context, '/wishlist'),
           ),
         ], 1),
         const SizedBox(height: 16),
@@ -170,7 +170,7 @@ class ProfileScreen extends StatelessWidget {
             icon: Icons.help_outline_rounded,
             iconColor: const Color(0xFF6B7280),
             title: 'Trợ giúp & Hỗ trợ',
-            onTap: () {},
+            onTap: () => _showHelpDialog(context),
           ),
           _MenuItem(
             icon: Icons.logout_rounded,
@@ -273,6 +273,83 @@ class ProfileScreen extends StatelessWidget {
               Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
             },
             child: const Text('Đăng xuất', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showHelpDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+            ),
+            const SizedBox(height: 20),
+            const Text('Trợ giúp & Hỗ trợ', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 16),
+            _buildHelpItem(Icons.phone_rounded, 'Hotline', '0123 456 789', const Color(0xFF059669)),
+            _buildHelpItem(Icons.email_rounded, 'Email', 'support@taphoa.shop', const Color(0xFF3B82F6)),
+            _buildHelpItem(Icons.access_time_rounded, 'Giờ làm việc', '8:00 - 21:00 (T2 - CN)', const Color(0xFFF59E0B)),
+            const SizedBox(height: 16),
+            const Text('Câu hỏi thường gặp', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            _buildFaqItem('Làm sao để đặt hàng?', 'Chọn sản phẩm → Thêm vào giỏ → Đặt hàng'),
+            _buildFaqItem('Thời gian giao hàng?', 'Giao trong ngày hoặc hôm sau tùy khu vực'),
+            _buildFaqItem('Chính sách đổi trả?', 'Đổi trả trong 24h nếu sản phẩm lỗi'),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHelpItem(IconData icon, String label, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
+              Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFaqItem(String question, String answer) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('•  ', style: TextStyle(color: AppColors.primaryStart, fontWeight: FontWeight.w700)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(question, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                Text(answer, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              ],
+            ),
           ),
         ],
       ),
