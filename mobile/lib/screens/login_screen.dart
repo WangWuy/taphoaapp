@@ -91,7 +91,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   isPassword: true,
                   validator: (v) => (v == null || v.isEmpty) ? 'Vui lòng nhập mật khẩu' : null,
                 ).animate().fadeIn(delay: 400.ms).slideX(begin: -0.1),
-                const SizedBox(height: 28),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/forgot-password'),
+                    child: const Text('Quên mật khẩu?', style: TextStyle(color: AppColors.primaryStart, fontSize: 13, fontWeight: FontWeight.w500)),
+                  ),
+                ).animate().fadeIn(delay: 450.ms),
+                const SizedBox(height: 20),
                 CustomButton(
                   text: 'Đăng nhập',
                   onPressed: _handleLogin,

@@ -104,6 +104,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               const SizedBox(height: 10),
               _buildMenuItem(Icons.people_rounded, 'Danh sách khách hàng', 'Xem thông tin & địa chỉ khách', () => Navigator.pushNamed(context, '/admin-customers'), const Color(0xFF8B5CF6)),
               const SizedBox(height: 10),
+              _buildMenuItem(Icons.bar_chart_rounded, 'Thống kê & Báo cáo', 'Doanh thu, top sản phẩm, tồn kho', () => Navigator.pushNamed(context, '/admin-dashboard'), const Color(0xFFEC4899)),
+              const SizedBox(height: 10),
               _buildMenuItem(Icons.settings_rounded, 'Cài đặt cửa hàng', 'Ngân hàng, phí ship, thông tin', () => Navigator.pushNamed(context, '/admin-config'), const Color(0xFF64748B)),
             ],
           ),

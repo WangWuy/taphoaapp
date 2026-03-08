@@ -34,6 +34,8 @@ import 'screens/admin/admin_config_screen.dart';
 import 'screens/profile_edit_screen.dart';
 import 'screens/change_password_screen.dart';
 import 'screens/order_detail_screen.dart';
+import 'screens/forgot_password_screen.dart';
+import 'screens/admin/admin_dashboard_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -125,6 +127,8 @@ class MyApp extends StatelessWidget {
           '/admin-config': (context) => const AdminConfigScreen(),
           '/profile-edit': (context) => const ProfileEditScreen(),
           '/change-password': (context) => const ChangePasswordScreen(),
+          '/forgot-password': (context) => const ForgotPasswordScreen(),
+          '/admin-dashboard': (context) => const AdminDashboardScreen(),
         },
       ),
     );
