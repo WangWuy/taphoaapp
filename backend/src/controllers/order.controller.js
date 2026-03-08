@@ -26,6 +26,11 @@ exports.confirmDelivery = catchAsync(async (req, res) => {
     res.json({ status: 'success', data: order, message: 'Đã xác nhận nhận hàng' });
 });
 
+exports.confirmPayment = catchAsync(async (req, res) => {
+    const order = await orderService.confirmPayment(req.userId, req.params.id);
+    res.json({ status: 'success', data: order, message: 'Đã xác nhận chuyển khoản' });
+});
+
 // Admin
 exports.adminGetOrders = catchAsync(async (req, res) => {
     const result = await orderService.adminGetOrders(req.query);

@@ -8,6 +8,7 @@ import '../constants/app_colors.dart';
 import '../models/order.dart';
 import '../models/product.dart';
 import '../providers/order_provider.dart';
+import '../providers/config_provider.dart';
 import '../services/api_service.dart';
 import '../constants/api_constants.dart';
 
@@ -115,6 +116,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         if (_order!.status == 'shipping') ...[
                           const SizedBox(height: 16),
                           _buildConfirmDeliveryButton(),
+                        ],
+
+                        // ─── Confirm bank transfer button ──
+                        if (_order!.paymentMethod == 'bank_transfer' &&
+                            _order!.paymentStatus == 'pending' &&
+                            _order!.status != 'cancelled') ...[
+                          const SizedBox(height: 16),
+                          _buildConfirmPaymentButton(),
                         ],
 
                         const SizedBox(height: 30),
@@ -367,6 +376,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   // ═══════════════════════════════════════════════════════════
   Widget _buildPaymentSection() {
     final order = _order!;
+    final configProvider = context.read<ConfigProvider>();
     String paymentText;
     IconData paymentIcon;
     switch (order.paymentMethod) {
@@ -409,6 +419,40 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ],
             ),
           ),
+          // Bank info when bank_transfer + pending
+          if (order.paymentMethod == 'bank_transfer' && order.paymentStatus == 'pending' && configProvider.bankInfo != null) ...[
+            const SizedBox(height: 14),
+            const Divider(height: 1),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F9FF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF0EA5E9).withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.account_balance_rounded, size: 18, color: Color(0xFF0EA5E9)),
+                      SizedBox(width: 8),
+                      Text('Thông tin chuyển khoản', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0369A1))),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  _buildBankRow('Ngân hàng', configProvider.bankInfo!['bankName'] ?? ''),
+                  _buildBankRow('Số TK', configProvider.bankInfo!['accountNumber'] ?? '', copyable: true),
+                  _buildBankRow('Chủ TK', configProvider.bankInfo!['accountHolder'] ?? ''),
+                  if (configProvider.bankInfo!['branch'] != null)
+                    _buildBankRow('Chi nhánh', configProvider.bankInfo!['branch']),
+                  const SizedBox(height: 6),
+                  const Text('💡 Nội dung CK: Ghi SĐT của bạn', style: TextStyle(fontSize: 11, color: Color(0xFF0369A1), fontStyle: FontStyle.italic)),
+                ],
+              ),
+            ),
+          ],
           // Note
           if (order.note != null && order.note!.isNotEmpty) ...[
             const SizedBox(height: 14),
@@ -669,6 +713,94 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildBankRow(String label, String value, {bool copyable = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          SizedBox(width: 72, child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
+          if (copyable)
+            GestureDetector(
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: value));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Đã copy số tài khoản'), duration: Duration(seconds: 1)),
+                );
+              },
+              child: const Icon(Icons.copy_rounded, size: 14, color: Color(0xFF0EA5E9)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfirmPaymentButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton.icon(
+        onPressed: () => _confirmPayment(),
+        icon: const Icon(Icons.check_circle_rounded, size: 22),
+        label: const Text('Đã chuyển khoản', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF0EA5E9),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          elevation: 0,
+        ),
+      ),
+    );
+  }
+
+  void _confirmPayment() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Xác nhận đã chuyển khoản?', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: const Text('Bạn đã chuyển khoản thanh toán cho đơn hàng này?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Chưa', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final orderProvider = context.read<OrderProvider>();
+              final success = await orderProvider.confirmPayment(_order!.id);
+              if (mounted && success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Row(
+                      children: [
+                        Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                        SizedBox(width: 8),
+                        Text('Đã xác nhận chuyển khoản!'),
+                      ],
+                    ),
+                    backgroundColor: const Color(0xFF059669),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                );
+                _loadOrder(_order!.id);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0EA5E9),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+            ),
+            child: const Text('Đã chuyển'),
+          ),
+        ],
+      ),
     );
   }
 }

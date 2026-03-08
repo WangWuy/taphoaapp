@@ -9,6 +9,7 @@ import '../models/product.dart';
 import '../providers/cart_provider.dart';
 import '../providers/wishlist_provider.dart';
 import '../utils/app_formatter.dart';
+import '../utils/cart_toast_helper.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   const ProductDetailScreen({super.key});
@@ -470,34 +471,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         HapticFeedback.mediumImpact();
                         setState(() => _isAdding = true);
                         final success = await context.read<CartProvider>().addToCart(product.id, quantity: _quantity);
-                        if (mounted) setState(() => _isAdding = false);
-                        if (success && mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Row(
-                                children: [
-                                  const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Đã thêm ${product.name} vào giỏ',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              backgroundColor: AppColors.success,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              duration: const Duration(seconds: 2),
-                              action: SnackBarAction(
-                                label: 'Xem giỏ',
-                                textColor: Colors.white,
-                                onPressed: () => Navigator.pushNamed(context, '/cart'),
-                              ),
-                            ),
-                          );
+                        if (mounted) {
+                          setState(() => _isAdding = false);
+                          CartToastHelper.show(context, success: success, productName: product.name);
                         }
                       }
                     : null,

@@ -55,7 +55,7 @@ const sendToDevice = async (fcmToken, { title, body, data = {} }) => {
             const { DeviceToken } = require('../models');
             await DeviceToken.update({ is_active: false }, { where: { fcm_token: fcmToken } });
         } else {
-            logger.error('Push notification error:', error.message);
+            logger.error(`Push notification error [${error.code || 'UNKNOWN'}]: ${error.message || JSON.stringify(error)}`);
         }
         return null;
     }

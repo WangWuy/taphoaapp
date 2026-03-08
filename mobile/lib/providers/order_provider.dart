@@ -99,6 +99,20 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
+  // Confirm bank transfer payment (customer)
+  Future<bool> confirmPayment(String orderId) async {
+    final response = await _api.patch('${ApiConstants.orders}/$orderId/confirm-payment');
+
+    if (response.success) {
+      await loadOrders();
+      return true;
+    } else {
+      _error = response.message;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // ─── Admin Methods ────────────────────────────────────
   List<Order> _adminOrders = [];
   List<Order> get adminOrders => _adminOrders;

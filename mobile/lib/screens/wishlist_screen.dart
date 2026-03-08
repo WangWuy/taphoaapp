@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../constants/app_colors.dart';
 import '../providers/wishlist_provider.dart';
 import '../providers/cart_provider.dart';
+import '../utils/cart_toast_helper.dart';
 
 class WishlistScreen extends StatefulWidget {
   const WishlistScreen({super.key});
@@ -145,17 +146,11 @@ class _WishlistScreenState extends State<WishlistScreen> {
                                       // Add to cart
                                       Expanded(
                                         child: GestureDetector(
-                                          onTap: () {
-                                            context.read<CartProvider>().addToCart(product.id);
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text('Đã thêm ${product.name} vào giỏ'),
-                                                backgroundColor: const Color(0xFF059669),
-                                                behavior: SnackBarBehavior.floating,
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                                duration: const Duration(milliseconds: 1200),
-                                              ),
-                                            );
+                                          onTap: () async {
+                                            final success = await context.read<CartProvider>().addToCart(product.id);
+                                            if (context.mounted) {
+                                              CartToastHelper.show(context, success: success, productName: product.name);
+                                            }
                                           },
                                           child: Container(
                                             padding: const EdgeInsets.symmetric(vertical: 8),

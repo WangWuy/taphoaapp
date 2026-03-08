@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import '../../constants/app_colors.dart';
@@ -50,11 +51,20 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     return num.tryParse(value.toString()) ?? 0;
   }
 
+  String? _parseDate(dynamic value) {
+    if (value == null) return null;
+    try {
+      return DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(value.toString()).toLocal());
+    } catch (_) {
+      return null;
+    }
+  }
+
   final _statusFlow = {
-    'pending': {'next': 'confirmed', 'label': 'Xác nhận', 'icon': Icons.check_circle_rounded, 'color': Color(0xFF3B82F6)},
-    'confirmed': {'next': 'shipping', 'label': 'Giao hàng', 'icon': Icons.local_shipping_rounded, 'color': Color(0xFFF59E0B)},
-    'preparing': {'next': 'shipping', 'label': 'Giao hàng', 'icon': Icons.local_shipping_rounded, 'color': Color(0xFFF59E0B)}, // backward compat
-    'shipping': {'next': 'delivered', 'label': 'Đã giao', 'icon': Icons.check_circle_rounded, 'color': Color(0xFF10B981)},
+    'pending': {'next': 'confirmed', 'label': 'Xác nhận', 'icon': Icons.check_circle_rounded, 'color': const Color(0xFF3B82F6)},
+    'confirmed': {'next': 'shipping', 'label': 'Giao hàng', 'icon': Icons.local_shipping_rounded, 'color': const Color(0xFFF59E0B)},
+    'preparing': {'next': 'shipping', 'label': 'Giao hàng', 'icon': Icons.local_shipping_rounded, 'color': const Color(0xFFF59E0B)},
+    'shipping': {'next': 'delivered', 'label': 'Đã giao', 'icon': Icons.check_circle_rounded, 'color': const Color(0xFF10B981)},
   };
 
   Future<void> _updateStatus(String newStatus) async {
@@ -100,7 +110,7 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormat = NumberFormat('#,##0', 'vi_VN');
+    final fmt = NumberFormat('#,##0', 'vi_VN');
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -125,33 +135,38 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildOrderHeader(currencyFormat),
+                              _buildOrderHeader(fmt),
                               const SizedBox(height: 16),
                               _buildCustomerSection(),
                               const SizedBox(height: 16),
-                              _buildItemsSection(currencyFormat),
+                              _buildItemsSection(fmt),
                               const SizedBox(height: 16),
                               _buildAddressSection(),
+                              const SizedBox(height: 16),
+                              _buildPaymentSection(),
+                              const SizedBox(height: 16),
+                              _buildSummarySection(fmt),
+                              const SizedBox(height: 16),
+                              _buildTimelineSection(),
                               const SizedBox(height: 16),
                             ],
                           ),
                         ),
                       ),
                     ),
-                    // Fixed bottom action buttons
                     _buildBottomActions(),
                   ],
                 ),
     );
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // ORDER HEADER
+  // ═══════════════════════════════════════════════════════════
   Widget _buildOrderHeader(NumberFormat fmt) {
     final status = _order!['status'] ?? 'pending';
     final orderNumber = _order!['order_number'] ?? '';
-    final total = _parseNum(_order!['total']);
-    final createdAt = (_order!['created_at'] ?? _order!['createdAt']) != null
-        ? DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse((_order!['created_at'] ?? _order!['createdAt'])))
-        : '';
+    final createdAt = _parseDate(_order!['created_at'] ?? _order!['createdAt']) ?? '';
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -166,25 +181,36 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(orderNumber, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              Expanded(
+                child: Row(
+                  children: [
+                    Text(orderNumber, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                    const SizedBox(width: 6),
+                    GestureDetector(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: orderNumber));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Đã copy mã đơn'), duration: Duration(seconds: 1)),
+                        );
+                      },
+                      child: const Icon(Icons.copy_rounded, size: 16, color: AppColors.primaryStart),
+                    ),
+                  ],
+                ),
+              ),
               _buildStatusBadge(status),
             ],
           ),
           const SizedBox(height: 8),
           Text('Ngày đặt: $createdAt', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-          const Divider(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Tổng cộng', style: TextStyle(fontSize: 15, color: AppColors.textSecondary)),
-              Text('${fmt.format(total)}₫', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primaryStart)),
-            ],
-          ),
         ],
       ),
     ).animate().fadeIn(duration: 300.ms);
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // CUSTOMER
+  // ═══════════════════════════════════════════════════════════
   Widget _buildCustomerSection() {
     final customer = _order!['customer'] as Map<String, dynamic>?;
     if (customer == null) return const SizedBox();
@@ -195,16 +221,26 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Khách hàng', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+          const Row(
+            children: [
+              Icon(Icons.person_outline_rounded, size: 20, color: AppColors.primaryStart),
+              SizedBox(width: 8),
+              Text('Khách hàng', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+            ],
+          ),
           const SizedBox(height: 10),
           _buildInfoRow(Icons.person_outline_rounded, customer['name'] ?? ''),
           _buildInfoRow(Icons.phone_outlined, customer['phone'] ?? ''),
-          if (customer['email'] != null) _buildInfoRow(Icons.email_outlined, customer['email']),
+          if (customer['email'] != null && customer['email'].toString().isNotEmpty)
+            _buildInfoRow(Icons.email_outlined, customer['email']),
         ],
       ),
     ).animate().fadeIn(delay: 100.ms, duration: 300.ms);
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // ITEMS
+  // ═══════════════════════════════════════════════════════════
   Widget _buildItemsSection(NumberFormat fmt) {
     final items = (_order!['items'] as List?) ?? [];
 
@@ -214,43 +250,54 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Sản phẩm (${items.length})', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+          Row(
+            children: [
+              const Icon(Icons.shopping_bag_outlined, size: 20, color: AppColors.primaryStart),
+              const SizedBox(width: 8),
+              Text('Sản phẩm (${items.length})', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+            ],
+          ),
           const SizedBox(height: 10),
-          ...items.map((item) {
+          ...items.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
             final product = item['product'] as Map<String, dynamic>?;
             final productId = item['product_id'] ?? product?['id'];
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: GestureDetector(
-                onTap: productId != null ? () => _navigateToProduct(productId) : null,
-                behavior: HitTestBehavior.opaque,
-                child: Row(
-                  children: [
-                    // Product image
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        width: 44, height: 44,
-                        color: AppColors.surfaceLight,
-                        child: ApiConstants.getFullImageUrl(product?['image_url']) != null
-                            ? Image.network(ApiConstants.getFullImageUrl(product!['image_url'])!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image_outlined, size: 20, color: AppColors.textLight))
-                            : const Icon(Icons.inventory_2_outlined, size: 20, color: AppColors.textLight),
+            return Column(
+              children: [
+                if (index > 0) const Divider(height: 16),
+                GestureDetector(
+                  onTap: productId != null ? () => _navigateToProduct(productId) : null,
+                  behavior: HitTestBehavior.opaque,
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          width: 52, height: 52,
+                          color: AppColors.surfaceLight,
+                          child: ApiConstants.getFullImageUrl(product?['image_url']) != null
+                              ? Image.network(ApiConstants.getFullImageUrl(product!['image_url'])!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image_outlined, size: 22, color: AppColors.textLight))
+                              : const Icon(Icons.inventory_2_outlined, size: 22, color: AppColors.textLight),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(item['product_name'] ?? product?['name'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
-                          Text('x${item['quantity']} • ${fmt.format(_parseNum(item['product_price']))}₫', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                        ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(item['product_name'] ?? product?['name'] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
+                            const SizedBox(height: 3),
+                            Text('${fmt.format(_parseNum(item['product_price']))}₫ × ${item['quantity']}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                          ],
+                        ),
                       ),
-                    ),
-                    Text('${fmt.format(_parseNum(item['subtotal']))}₫', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  ],
+                      const SizedBox(width: 8),
+                      Text('${fmt.format(_parseNum(item['subtotal']))}₫', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primaryStart)),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             );
           }),
         ],
@@ -258,6 +305,9 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     ).animate().fadeIn(delay: 200.ms, duration: 300.ms);
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // ADDRESS
+  // ═══════════════════════════════════════════════════════════
   Widget _buildAddressSection() {
     final address = _order!['shippingAddress'] as Map<String, dynamic>?;
     if (address == null) return const SizedBox();
@@ -275,16 +325,266 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Địa chỉ giao hàng', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+          const Row(
+            children: [
+              Icon(Icons.location_on_outlined, size: 20, color: Color(0xFFEF4444)),
+              SizedBox(width: 8),
+              Text('Địa chỉ giao hàng', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+            ],
+          ),
           const SizedBox(height: 10),
-          _buildInfoRow(Icons.person_outline_rounded, address['recipient_name'] ?? address['recipientName'] ?? ''),
-          _buildInfoRow(Icons.phone_outlined, address['phone'] ?? ''),
-          _buildInfoRow(Icons.location_on_outlined, fullAddress),
+          Row(
+            children: [
+              Text(address['recipient_name'] ?? address['recipientName'] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              const SizedBox(width: 10),
+              Text(address['phone'] ?? '', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(fullAddress, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4)),
         ],
       ),
     ).animate().fadeIn(delay: 300.ms, duration: 300.ms);
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // PAYMENT & NOTE
+  // ═══════════════════════════════════════════════════════════
+  Widget _buildPaymentSection() {
+    final paymentMethod = _order!['payment_method'] ?? _order!['paymentMethod'] ?? 'cod';
+    final paymentStatus = _order!['payment_status'] ?? _order!['paymentStatus'] ?? 'pending';
+    final note = _order!['note'];
+
+    String paymentText;
+    IconData paymentIcon;
+    switch (paymentMethod) {
+      case 'bank_transfer':
+        paymentText = 'Chuyển khoản ngân hàng';
+        paymentIcon = Icons.account_balance_rounded;
+        break;
+      default:
+        paymentText = 'Thanh toán khi nhận hàng (COD)';
+        paymentIcon = Icons.payments_outlined;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), boxShadow: AppColors.cardShadow),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(paymentIcon, size: 20, color: const Color(0xFF0EA5E9)),
+              const SizedBox(width: 8),
+              const Text('Thanh toán', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.only(left: 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(paymentText, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                const SizedBox(height: 6),
+                _buildPaymentStatusBadge(paymentStatus, paymentMethod),
+              ],
+            ),
+          ),
+          if (note != null && note.toString().isNotEmpty) ...[
+            const SizedBox(height: 14),
+            const Divider(height: 1),
+            const SizedBox(height: 14),
+            const Row(
+              children: [
+                Icon(Icons.note_alt_outlined, size: 20, color: Color(0xFF8B5CF6)),
+                SizedBox(width: 8),
+                Text('Ghi chú', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 28),
+              child: Text(note.toString(), style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4)),
+            ),
+          ],
+        ],
+      ),
+    ).animate().fadeIn(delay: 350.ms, duration: 300.ms);
+  }
+
+  Widget _buildPaymentStatusBadge(String status, String paymentMethod) {
+    Color bgColor;
+    Color textColor;
+    String text;
+
+    if (paymentMethod == 'cod' && status == 'pending') {
+      bgColor = const Color(0xFFDBEAFE);
+      textColor = const Color(0xFF1E40AF);
+      text = 'Thanh toán khi nhận hàng';
+    } else {
+      switch (status) {
+        case 'paid':
+          bgColor = const Color(0xFFD1FAE5);
+          textColor = const Color(0xFF065F46);
+          text = 'Đã thanh toán';
+          break;
+        case 'pending':
+          bgColor = const Color(0xFFFEF3C7);
+          textColor = const Color(0xFF92400E);
+          text = 'Chờ thanh toán';
+          break;
+        case 'refunded':
+          bgColor = const Color(0xFFE0E7FF);
+          textColor = const Color(0xFF3730A3);
+          text = 'Đã hoàn tiền';
+          break;
+        default:
+          bgColor = AppColors.surfaceLight;
+          textColor = AppColors.textSecondary;
+          text = status;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(8)),
+      child: Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textColor)),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // SUMMARY (Price breakdown)
+  // ═══════════════════════════════════════════════════════════
+  Widget _buildSummarySection(NumberFormat fmt) {
+    final subtotal = _parseNum(_order!['subtotal']);
+    final shippingFee = _parseNum(_order!['shipping_fee'] ?? _order!['shippingFee']);
+    final total = _parseNum(_order!['total']);
+    final items = (_order!['items'] as List?) ?? [];
+    final isFreeShip = shippingFee == 0;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), boxShadow: AppColors.cardShadow),
+      child: Column(
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.receipt_long_rounded, size: 20, color: AppColors.primaryStart),
+              SizedBox(width: 8),
+              Text('Tổng kết', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildSummaryRow('Tiền hàng (${items.length} SP)', '${fmt.format(subtotal)}₫'),
+          const SizedBox(height: 8),
+          _buildSummaryRow(
+            'Phí giao hàng',
+            isFreeShip ? 'Miễn phí' : '${fmt.format(shippingFee)}₫',
+            valueColor: isFreeShip ? const Color(0xFF059669) : null,
+          ),
+          const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Tổng thanh toán', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              Text('${fmt.format(total)}₫', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primaryStart)),
+            ],
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: 400.ms, duration: 300.ms);
+  }
+
+  Widget _buildSummaryRow(String label, String value, {Color? valueColor}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+        Text(value, style: TextStyle(fontSize: 14, color: valueColor ?? AppColors.textPrimary, fontWeight: valueColor != null ? FontWeight.w600 : FontWeight.w400)),
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // TIMELINE
+  // ═══════════════════════════════════════════════════════════
+  Widget _buildTimelineSection() {
+    final orderedAt = _parseDate(_order!['ordered_at'] ?? _order!['orderedAt'] ?? _order!['created_at'] ?? _order!['createdAt']);
+    final shippedAt = _parseDate(_order!['shipped_at'] ?? _order!['shippedAt']);
+    final deliveredAt = _parseDate(_order!['delivered_at'] ?? _order!['deliveredAt']);
+    final cancelledAt = _parseDate(_order!['cancelled_at'] ?? _order!['cancelledAt']);
+
+    final events = <_TimelineEvent>[];
+    if (orderedAt != null) events.add(_TimelineEvent('Đặt hàng', orderedAt, Icons.shopping_cart_outlined, const Color(0xFF3B82F6)));
+    if (shippedAt != null) events.add(_TimelineEvent('Bắt đầu giao', shippedAt, Icons.local_shipping_outlined, const Color(0xFFF59E0B)));
+    if (deliveredAt != null) events.add(_TimelineEvent('Đã giao', deliveredAt, Icons.check_circle_rounded, const Color(0xFF059669)));
+    if (cancelledAt != null) events.add(_TimelineEvent('Đã hủy', cancelledAt, Icons.cancel_rounded, AppColors.error));
+
+    if (events.isEmpty) return const SizedBox();
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), boxShadow: AppColors.cardShadow),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.timeline_rounded, size: 20, color: AppColors.primaryStart),
+              SizedBox(width: 8),
+              Text('Lịch sử đơn hàng', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...events.asMap().entries.map((entry) {
+            final i = entry.key;
+            final e = entry.value;
+            final isLast = i == events.length - 1;
+            return IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    children: [
+                      Container(
+                        width: 32, height: 32,
+                        decoration: BoxDecoration(color: e.color.withValues(alpha: 0.1), shape: BoxShape.circle),
+                        child: Icon(e.icon, size: 16, color: e.color),
+                      ),
+                      if (!isLast)
+                        Expanded(
+                          child: Container(width: 2, color: AppColors.divider),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(e.label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 2),
+                          Text(e.time, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    ).animate().fadeIn(delay: 450.ms, duration: 300.ms);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // BOTTOM ACTIONS
+  // ═══════════════════════════════════════════════════════════
   Widget _buildBottomActions() {
     final status = _order!['status'] ?? 'pending';
     final flow = _statusFlow[status];
@@ -345,6 +645,9 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     );
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // HELPERS
+  // ═══════════════════════════════════════════════════════════
   Widget _buildInfoRow(IconData icon, String text) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
@@ -376,4 +679,13 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       child: Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textColor)),
     );
   }
+}
+
+class _TimelineEvent {
+  final String label;
+  final String time;
+  final IconData icon;
+  final Color color;
+
+  const _TimelineEvent(this.label, this.time, this.icon, this.color);
 }

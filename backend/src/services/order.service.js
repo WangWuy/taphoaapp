@@ -165,6 +165,16 @@ const cancelOrder = async (userId, orderId) => {
 
         await order.transitionTo('cancelled', { transaction: t });
         await t.commit();
+
+        // Notify admins about cancellation
+        notifyAdmins({
+            title: '❌ Khách hủy đơn',
+            message: `Đơn #${order.order_number} đã bị khách hủy`,
+            type: 'order_cancelled',
+            referenceType: 'order',
+            referenceId: order.id,
+        }).catch(() => { });
+
         return order;
     } catch (error) {
         if (!error.isOperational) await t.rollback().catch(() => { });
@@ -178,6 +188,38 @@ const confirmDelivery = async (userId, orderId) => {
     if (order.status !== 'shipping') throw new AppError('Chỉ có thể xác nhận khi đơn đang giao', 400);
 
     await order.transitionTo('delivered');
+
+    // Notify admins about delivery confirmation
+    notifyAdmins({
+        title: '✅ Đã giao thành công',
+        message: `KH xác nhận nhận đơn #${order.order_number}`,
+        type: 'delivery_confirmed',
+        referenceType: 'order',
+        referenceId: order.id,
+    }).catch(() => { });
+
+    return order;
+};
+
+const confirmPayment = async (userId, orderId) => {
+    const order = await Order.findOne({
+        where: { id: orderId, user_id: userId },
+    });
+    if (!order) throw new AppError('Đơn hàng không tồn tại', 404);
+    if (order.payment_method !== 'bank_transfer') throw new AppError('Đơn này không phải chuyển khoản', 400);
+    if (order.payment_status === 'paid') throw new AppError('Đã xác nhận thanh toán rồi', 400);
+
+    await order.update({ payment_status: 'paid' });
+
+    // Notify admins
+    notifyAdmins({
+        title: '💸 Xác nhận chuyển khoản',
+        message: `KH đã CK cho đơn #${order.order_number}`,
+        type: 'payment_confirmed',
+        referenceType: 'order',
+        referenceId: order.id,
+    }).catch(() => { });
+
     return order;
 };
 
@@ -325,7 +367,7 @@ const getDashboardStats = async () => {
 };
 
 module.exports = {
-    createOrder, getUserOrders, getOrderDetail, cancelOrder, confirmDelivery,
+    createOrder, getUserOrders, getOrderDetail, cancelOrder, confirmDelivery, confirmPayment,
     adminGetOrders, adminGetOrderDetail, adminUpdateOrderStatus,
     getOrderCounts, getDashboardStats,
 };

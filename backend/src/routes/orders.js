@@ -12,5 +12,6 @@ router.get('/', orderController.getUserOrders);
 router.get('/:id', orderController.getOrderDetail);
 router.patch('/:id/cancel', orderController.cancelOrder);
 router.patch('/:id/confirm-delivery', orderController.confirmDelivery);
+router.patch('/:id/confirm-payment', orderController.confirmPayment);
 
 module.exports = router;

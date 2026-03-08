@@ -6,11 +6,12 @@ import '../constants/app_colors.dart';
 import '../models/product.dart';
 import '../providers/wishlist_provider.dart';
 import '../utils/app_formatter.dart';
+import '../utils/cart_toast_helper.dart';
 
 class ProductCard extends StatefulWidget {
   final Product product;
   final VoidCallback onTap;
-  final VoidCallback? onAddToCart;
+  final Future<bool> Function()? onAddToCart;
 
   const ProductCard({
     super.key,
@@ -31,9 +32,11 @@ class _ProductCardState extends State<ProductCard> {
     if (_isAdding || widget.onAddToCart == null) return;
     HapticFeedback.mediumImpact();
     setState(() => _isAdding = true);
-    widget.onAddToCart!();
-    await Future.delayed(const Duration(milliseconds: 700));
-    if (mounted) setState(() => _isAdding = false);
+    final success = await widget.onAddToCart!();
+    if (mounted) {
+      setState(() => _isAdding = false);
+      CartToastHelper.show(context, success: success, productName: widget.product.name);
+    }
   }
 
   @override

@@ -183,33 +183,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                                     product: product,
                                                     onTap: () => Navigator.pushNamed(context, '/product-detail', arguments: product),
                                                     onAddToCart: () {
-                                                      context.read<CartProvider>().addToCart(product.id);
-                                                      ScaffoldMessenger.of(context).showSnackBar(
-                                                        SnackBar(
-                                                          content: Row(
-                                                            children: [
-                                                              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-                                                              const SizedBox(width: 8),
-                                                              Expanded(
-                                                                child: Text(
-                                                                  'Đã thêm ${product.name} vào giỏ',
-                                                                  maxLines: 1,
-                                                                  overflow: TextOverflow.ellipsis,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                          backgroundColor: AppColors.success,
-                                                          behavior: SnackBarBehavior.floating,
-                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                                          duration: const Duration(milliseconds: 1400),
-                                                          action: SnackBarAction(
-                                                            label: 'Xem giỏ',
-                                                            textColor: Colors.white,
-                                                            onPressed: () => Navigator.pushNamed(context, '/cart'),
-                                                          ),
-                                                        ),
-                                                      );
+                                                      return context.read<CartProvider>().addToCart(product.id);
                                                     },
                                                   ),
                                                 ),
