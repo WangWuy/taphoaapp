@@ -123,8 +123,20 @@ class ApiService {
   // ─── UPLOAD IMAGE ──────────────────────────────────────
   static const Duration _uploadTimeout = Duration(seconds: 60);
 
+  /// Warm up server if it's in cold start (Render free tier)
+  Future<void> _warmUpServer() async {
+    try {
+      final uri = _buildUri('/health');
+      debugPrint('🔥 Warming up server...');
+      final response = await http.get(uri).timeout(const Duration(seconds: 30));
+      debugPrint('🔥 Server warm: ${response.statusCode}');
+    } catch (e) {
+      debugPrint('🔥 Warm-up ping failed (may still work): $e');
+    }
+  }
+
   Future<ApiResponse> uploadImage(File imageFile) async {
-    for (int attempt = 0; attempt <= 1; attempt++) {
+    for (int attempt = 0; attempt <= 2; attempt++) {
       try {
         final uri = _buildUri('/upload');
         debugPrint('📤 UPLOAD attempt ${attempt + 1}: $uri');
@@ -140,6 +152,13 @@ class ApiService {
         final response = await http.Response.fromStream(streamedResponse);
         debugPrint('📤 UPLOAD response: ${response.statusCode} ${response.body.length > 200 ? response.body.substring(0, 200) : response.body}');
 
+        // 502 = Render cold start, warm up and retry
+        if (response.statusCode == 502 && attempt < 2) {
+          debugPrint('📤 Got 502 (server cold start), warming up and retrying...');
+          await _warmUpServer();
+          continue;
+        }
+
         // Auto-refresh on 401 (first attempt only)
         if (response.statusCode == 401 && attempt == 0 && _refreshToken != null) {
           debugPrint('📤 UPLOAD got 401, trying token refresh...');
@@ -150,10 +169,12 @@ class ApiService {
         return _processResponse(response);
       } catch (e) {
         debugPrint('📤 UPLOAD error (attempt ${attempt + 1}): $e');
-        if (attempt == 1) {
+        if (attempt == 2) {
           return ApiResponse(success: false, message: _friendlyError(e));
         }
-        await Future.delayed(const Duration(seconds: 1));
+        // First failure might be cold start, warm up
+        if (attempt == 0) await _warmUpServer();
+        await Future.delayed(Duration(seconds: attempt + 1));
       }
     }
     return ApiResponse(success: false, message: 'Upload thất bại sau nhiều lần thử');
