@@ -12,6 +12,9 @@ const { globalLimiter } = require('./middleware/rateLimiter');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Trust proxy (Render, Heroku, etc. use reverse proxy)
+app.set('trust proxy', 1);
+
 // ─── Security Middleware ──────────────────────────────────
 app.use(helmet());
 app.use(cors({
@@ -84,8 +87,8 @@ const startServer = async () => {
 
         // Sync database models
         if (process.env.NODE_ENV === 'production') {
-            await sequelize.sync(); // Create tables if not exist (safe for production)
-            logger.info('✅ Database models synchronized (production).');
+            await sequelize.sync({ alter: true });
+            logger.info('✅ Database models synchronized (production - alter mode).');
         } else {
             await sequelize.sync({ alter: true });
             logger.info('✅ Database models synchronized (dev - alter mode).');

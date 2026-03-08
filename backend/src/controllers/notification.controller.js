@@ -22,6 +22,7 @@ exports.registerDeviceToken = catchAsync(async (req, res) => {
 });
 
 exports.removeDeviceToken = catchAsync(async (req, res) => {
-    await notificationService.removeDeviceToken(req.body.fcm_token);
+    const fcmToken = req.params.token || req.body.fcm_token;
+    if (fcmToken) await notificationService.removeDeviceToken(fcmToken);
     res.json({ status: 'success', message: 'Đã xóa device token' });
 });
