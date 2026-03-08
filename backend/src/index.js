@@ -94,6 +94,19 @@ const startServer = async () => {
             logger.info('✅ Database models synchronized (dev - alter mode).');
         }
 
+        // One-time: swap old pricing logic (compare_at_price > price → compare_at_price < price)
+        // Safe to re-run: only affects rows where compare_at_price > price (old Shopify style)
+        const [swapResults] = await sequelize.query(`
+            UPDATE products 
+            SET price = compare_at_price, 
+                compare_at_price = price 
+            WHERE compare_at_price IS NOT NULL 
+              AND compare_at_price > price
+        `);
+        if (swapResults?.rowCount > 0) {
+            logger.info(`🔄 Swapped pricing for ${swapResults.rowCount} products (old→new logic).`);
+        }
+
         // Seed default config if not exists
         const { seedDefaults } = require('./services/config.service');
         await seedDefaults();
