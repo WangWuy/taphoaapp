@@ -36,10 +36,19 @@ import 'screens/change_password_screen.dart';
 import 'screens/order_detail_screen.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
+
+  // Initialize Firebase (will silently fail if google-services.json is missing)
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('Firebase init skipped: $e');
+  }
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,

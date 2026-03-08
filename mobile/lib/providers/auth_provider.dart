@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../services/push_notification_service.dart';
 import '../constants/api_constants.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -60,6 +61,9 @@ class AuthProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', token);
 
+      // Register push notifications
+      try { await PushNotificationService().init(); } catch (_) {}
+
       notifyListeners();
       return true;
     } else {
@@ -96,6 +100,9 @@ class AuthProvider extends ChangeNotifier {
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', token);
+
+      // Register push notifications
+      try { await PushNotificationService().init(); } catch (_) {}
 
       notifyListeners();
       return true;
@@ -154,6 +161,9 @@ class AuthProvider extends ChangeNotifier {
 
   // Logout
   Future<void> logout() async {
+    // Remove FCM token
+    try { await PushNotificationService().removeToken(); } catch (_) {}
+
     _currentUser = null;
     _api.setToken(null);
     final prefs = await SharedPreferences.getInstance();
