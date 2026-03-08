@@ -94,6 +94,14 @@ const startServer = async () => {
         const { seedDefaults } = require('./services/config.service');
         await seedDefaults();
 
+        // Seed default users if not exists
+        const bcrypt = require('bcryptjs');
+        const { User } = require('./models');
+        const hash = await bcrypt.hash('123456', 10);
+        await User.findOrCreate({ where: { phone: '0901234567' }, defaults: { name: 'Admin', password: hash, role: 'admin' } });
+        await User.findOrCreate({ where: { phone: '0987654321' }, defaults: { name: 'Khách hàng', password: hash, role: 'customer' } });
+        logger.info('✅ Default users seeded.');
+
         app.listen(PORT, '0.0.0.0', () => {
             logger.info(`🚀 Server is running on http://localhost:${PORT}`);
             logger.info(`📋 Environment: ${process.env.NODE_ENV || 'development'}`);

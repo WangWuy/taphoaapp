@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "301806364560",
+    "project_id": "taphoaapp-793a8",
+    "storage_bucket": "taphoaapp-793a8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:301806364560:android:55a8d0da432f25a758f515",
+        "android_client_info": {
+          "package_name": "com.demo.tap_hoa_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0YK7YJ1M9ec0qd3SF_K10awSYl3aiDtc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
