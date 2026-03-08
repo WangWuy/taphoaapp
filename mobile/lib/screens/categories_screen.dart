@@ -462,7 +462,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           ),
           // Price
           Text(
-            '${fmt.format(product.price)}₫',
+            '${fmt.format(product.sellingPrice)}₫',
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,

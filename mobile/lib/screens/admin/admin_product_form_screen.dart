@@ -23,6 +23,7 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _comparePriceController = TextEditingController();
+  final _costPriceController = TextEditingController();
   final _unitController = TextEditingController();
   final _stockController = TextEditingController();
 
@@ -50,6 +51,7 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
       _descriptionController.text = p['description'] ?? '';
       _priceController.text = (p['price'] ?? 0).toString();
       _comparePriceController.text = p['compare_at_price']?.toString() ?? '';
+      _costPriceController.text = p['cost_price']?.toString() ?? '';
       _unitController.text = p['unit'] ?? 'cái';
       _stockController.text = (p['stock_quantity'] ?? 0).toString();
       _imageUrl = ApiConstants.getFullImageUrl(p['image_url']);
@@ -86,6 +88,7 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
     _descriptionController.dispose();
     _priceController.dispose();
     _comparePriceController.dispose();
+    _costPriceController.dispose();
     _unitController.dispose();
     _stockController.dispose();
     super.dispose();
@@ -192,6 +195,7 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
       'description': _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
       'price': double.tryParse(_priceController.text) ?? 0,
       'compare_at_price': _comparePriceController.text.trim().isEmpty ? null : double.tryParse(_comparePriceController.text),
+      'cost_price': _costPriceController.text.trim().isEmpty ? null : double.tryParse(_costPriceController.text),
       'unit': _unitController.text.trim().isEmpty ? 'cái' : _unitController.text.trim(),
       'stock_quantity': int.tryParse(_stockController.text) ?? 0,
       'category_id': _selectedCategoryId,
@@ -302,9 +306,25 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
               ),
               const SizedBox(height: 18),
 
-              // Price row
+              // Price section
+              // Row 1: Giá nhập + Giá bán
               Row(
                 children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Giá nhập (₫)'),
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: _costPriceController,
+                          keyboardType: TextInputType.number,
+                          decoration: _inputDecoration('Giá từ NCC'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,20 +344,24 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('Giá gốc (₫)'),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _comparePriceController,
-                          keyboardType: TextInputType.number,
-                          decoration: _inputDecoration('Tùy chọn'),
-                        ),
-                      ],
-                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Row 2: Giá giảm
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildLabel('Giá giảm (₫)'),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _comparePriceController,
+                    keyboardType: TextInputType.number,
+                    decoration: _inputDecoration('Để trống nếu không giảm giá'),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Nhập giá thấp hơn giá bán để hiện badge giảm giá',
+                    style: TextStyle(fontSize: 11, color: AppColors.textLight.withValues(alpha: 0.7)),
                   ),
                 ],
               ),

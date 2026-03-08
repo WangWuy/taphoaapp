@@ -90,6 +90,7 @@ const createProduct = async (data) => {
         slug,
         description: data.description || `Sản phẩm ${data.name} chất lượng cao.`,
         compare_at_price: data.compare_at_price || null,
+        cost_price: data.cost_price || null,
         unit: data.unit || 'cái',
         stock_quantity: data.stock_quantity || 0,
         category_id: data.category_id || null,
@@ -111,6 +112,7 @@ const updateProduct = async (id, data) => {
         description: data.description !== undefined ? data.description : product.description,
         price: data.price !== undefined ? data.price : product.price,
         compare_at_price: data.compare_at_price !== undefined ? data.compare_at_price : product.compare_at_price,
+        cost_price: data.cost_price !== undefined ? data.cost_price : product.cost_price,
         unit: data.unit || product.unit,
         stock_quantity: data.stock_quantity !== undefined ? data.stock_quantity : product.stock_quantity,
         category_id: data.category_id !== undefined ? data.category_id : product.category_id,
@@ -146,8 +148,17 @@ const deleteProduct = async (id) => {
     await product.update({ is_active: false });
 };
 
+const toggleActive = async (id) => {
+    const product = await Product.findByPk(id);
+    if (!product) throw new AppError('Sản phẩm không tồn tại', 404);
+    await product.update({ is_active: !product.is_active });
+    return Product.findByPk(id, {
+        include: [{ model: Category, as: 'category', attributes: ['id', 'name'] }],
+    });
+};
+
 module.exports = {
     listProducts, getProduct,
     adminListProducts, getInventory,
-    createProduct, updateProduct, updateStock, deleteProduct,
+    createProduct, updateProduct, updateStock, deleteProduct, toggleActive,
 };

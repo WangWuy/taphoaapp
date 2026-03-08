@@ -41,3 +41,8 @@ exports.deleteProduct = catchAsync(async (req, res) => {
     await productService.deleteProduct(req.params.id);
     res.json({ status: 'success', message: 'Đã ẩn sản phẩm' });
 });
+
+exports.toggleActive = catchAsync(async (req, res) => {
+    const product = await productService.toggleActive(req.params.id);
+    res.json({ status: 'success', data: product });
+});

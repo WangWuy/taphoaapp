@@ -98,7 +98,7 @@ class CartItemWidget extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${currencyFormat.format(cartItem.product.price)}đ',
+                    '${currencyFormat.format(cartItem.product.sellingPrice)}đ',
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,

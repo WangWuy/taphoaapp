@@ -44,8 +44,17 @@ module.exports = (sequelize) => {
             type: DataTypes.INTEGER,
             allowNull: true,
             validate: {
-                min: { args: [0], msg: 'Giá so sánh không được âm' },
+                min: { args: [0], msg: 'Giá giảm không được âm' },
             },
+            comment: 'Sale price (lower than price when on sale)',
+        },
+        cost_price: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            validate: {
+                min: { args: [0], msg: 'Giá nhập không được âm' },
+            },
+            comment: 'Cost/purchase price from supplier (admin only)',
         },
         unit: {
             type: DataTypes.STRING(30),
@@ -97,15 +106,15 @@ module.exports = (sequelize) => {
         },
     });
 
-    // Virtual field: check if on sale
+    // Virtual field: check if on sale (compare_at_price is the SALE price, lower than regular price)
     Product.prototype.isOnSale = function () {
-        return this.compare_at_price && this.compare_at_price > this.price;
+        return this.compare_at_price && this.compare_at_price > 0 && this.compare_at_price < this.price;
     };
 
     // Virtual field: discount percentage
     Product.prototype.discountPercent = function () {
         if (!this.isOnSale()) return 0;
-        return Math.round((1 - this.price / this.compare_at_price) * 100);
+        return Math.round((1 - this.compare_at_price / this.price) * 100);
     };
 
     Product.associate = (models) => {

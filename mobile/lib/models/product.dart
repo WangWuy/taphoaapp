@@ -7,6 +7,7 @@ class Product {
   final String? description;
   final double price;
   final double? compareAtPrice;
+  final double? costPrice;
   final String unit;
   final int stockQuantity;
   final String? imageUrl;
@@ -20,6 +21,7 @@ class Product {
     this.description,
     required this.price,
     this.compareAtPrice,
+    this.costPrice,
     this.unit = 'cái',
     this.stockQuantity = 0,
     this.imageUrl,
@@ -28,12 +30,15 @@ class Product {
   });
 
   bool get isOnSale =>
-      compareAtPrice != null && compareAtPrice! > price;
+      compareAtPrice != null && compareAtPrice! > 0 && compareAtPrice! < price;
 
   int get discountPercent {
     if (!isOnSale) return 0;
-    return ((1 - price / compareAtPrice!) * 100).round();
+    return ((1 - compareAtPrice! / price) * 100).round();
   }
+
+  /// The price customer actually pays (sale price if on sale, otherwise regular price)
+  double get sellingPrice => isOnSale ? compareAtPrice! : price;
 
   Product copyWith({
     String? id,
@@ -42,6 +47,7 @@ class Product {
     String? description,
     double? price,
     double? compareAtPrice,
+    double? costPrice,
     String? unit,
     int? stockQuantity,
     String? imageUrl,
@@ -55,6 +61,7 @@ class Product {
       description: description ?? this.description,
       price: price ?? this.price,
       compareAtPrice: compareAtPrice ?? this.compareAtPrice,
+      costPrice: costPrice ?? this.costPrice,
       unit: unit ?? this.unit,
       stockQuantity: stockQuantity ?? this.stockQuantity,
       imageUrl: imageUrl ?? this.imageUrl,
@@ -70,6 +77,7 @@ class Product {
     'description': description,
     'price': price,
     'compare_at_price': compareAtPrice,
+    'cost_price': costPrice,
     'unit': unit,
     'stock_quantity': stockQuantity,
     'image_url': imageUrl,
@@ -90,6 +98,11 @@ class Product {
           ? (json['compare_at_price'] is int)
               ? (json['compare_at_price'] as int).toDouble()
               : double.tryParse(json['compare_at_price'].toString())
+          : null,
+      costPrice: json['cost_price'] != null
+          ? (json['cost_price'] is int)
+              ? (json['cost_price'] as int).toDouble()
+              : double.tryParse(json['cost_price'].toString())
           : null,
       unit: json['unit'] ?? 'cái',
       stockQuantity: json['stock_quantity'] ?? 0,

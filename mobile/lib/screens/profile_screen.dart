@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../constants/app_colors.dart';
+import '../constants/app_text_styles.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
 
@@ -26,6 +27,13 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 28),
               // Menu items
               _buildMenuSection(context, authProvider),
+              const SizedBox(height: 24),
+              // Version info
+              Text(
+                'TạpHóa v1.1.0',
+                style: AppTextStyles.labelSmall.copyWith(color: AppColors.textLight),
+              ).animate().fadeIn(delay: 500.ms, duration: 300.ms),
+              const SizedBox(height: 12),
             ],
           ),
         ),

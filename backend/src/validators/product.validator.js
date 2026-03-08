@@ -7,6 +7,7 @@ const createProduct = Joi.object({
     price: Joi.number().integer().min(0).required()
         .messages({ 'any.required': 'Giá sản phẩm là bắt buộc' }),
     compare_at_price: Joi.number().integer().min(0).allow(null).optional(),
+    cost_price: Joi.number().integer().min(0).allow(null).optional(),
     unit: Joi.string().max(30).optional(),
     stock_quantity: Joi.number().integer().min(0).optional(),
     category_id: Joi.number().integer().allow(null).optional(),
@@ -19,6 +20,7 @@ const updateProduct = Joi.object({
     description: Joi.string().max(5000).allow('', null).optional(),
     price: Joi.number().integer().min(0).optional(),
     compare_at_price: Joi.number().integer().min(0).allow(null).optional(),
+    cost_price: Joi.number().integer().min(0).allow(null).optional(),
     unit: Joi.string().max(30).optional(),
     stock_quantity: Joi.number().integer().min(0).optional(),
     category_id: Joi.number().integer().allow(null).optional(),

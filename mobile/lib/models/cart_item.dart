@@ -13,7 +13,7 @@ class CartItem {
     required this.product,
   });
 
-  double get subtotal => product.price * quantity;
+  double get subtotal => product.sellingPrice * quantity;
 
   CartItem copyWith({
     String? id,

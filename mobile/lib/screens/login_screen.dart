@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../constants/app_colors.dart';
+import '../constants/app_text_styles.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
@@ -39,7 +40,18 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.pushReplacementNamed(context, route);
     } else if (mounted && authProvider.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(authProvider.error!), backgroundColor: AppColors.error),
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Expanded(child: Text(authProvider.error!)),
+            ],
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
       );
     }
   }
@@ -57,105 +69,106 @@ class _LoginScreenState extends State<LoginScreen> {
             key: _formKey,
             child: Column(
               children: [
-                const SizedBox(height: 60),
+                const SizedBox(height: 48),
+                // Logo
                 Container(
-                  width: 80, height: 80,
+                  width: 88,
+                  height: 88,
                   decoration: BoxDecoration(
                     gradient: AppColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: AppColors.buttonShadow,
+                    borderRadius: BorderRadius.circular(26),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primaryStart.withValues(alpha: 0.35),
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
                   ),
-                  child: const Icon(Icons.storefront_rounded, size: 36, color: Colors.white),
-                ).animate().scale(begin: const Offset(0.8, 0.8), duration: 400.ms, curve: Curves.elasticOut),
-                const SizedBox(height: 20),
-                const Text('TạpHóa Shop', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.textPrimary))
-                    .animate().fadeIn(delay: 100.ms),
+                  child: const Icon(Icons.storefront_rounded, size: 40, color: Colors.white),
+                )
+                    .animate()
+                    .scale(begin: const Offset(0.6, 0.6), duration: 500.ms, curve: Curves.elasticOut)
+                    .fadeIn(duration: 400.ms),
+
+                const SizedBox(height: 24),
+                const Text('TạpHóa', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: 1))
+                    .animate().fadeIn(delay: 100.ms, duration: 400.ms),
                 const SizedBox(height: 6),
                 const Text('Đăng nhập để mua sắm', style: TextStyle(fontSize: 14, color: AppColors.textSecondary))
-                    .animate().fadeIn(delay: 200.ms),
+                    .animate().fadeIn(delay: 200.ms, duration: 400.ms),
+
                 const SizedBox(height: 40),
+
+                // Form fields
                 CustomTextField(
                   label: 'Số điện thoại',
                   hint: 'Nhập số điện thoại',
                   controller: _phoneController,
                   prefixIcon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
-                  validator: (v) => (v == null || v.isEmpty) ? 'Vui lòng nhập SĐT' : null,
-                ).animate().fadeIn(delay: 300.ms).slideX(begin: -0.1),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Vui lòng nhập SĐT';
+                    if (v.length < 10) return 'SĐT không hợp lệ';
+                    return null;
+                  },
+                ).animate().fadeIn(delay: 300.ms, duration: 400.ms).slideY(begin: 0.1, duration: 300.ms),
+
                 const SizedBox(height: 16),
+
                 CustomTextField(
                   label: 'Mật khẩu',
                   hint: 'Nhập mật khẩu',
                   controller: _passwordController,
                   prefixIcon: Icons.lock_outline_rounded,
                   isPassword: true,
-                  validator: (v) => (v == null || v.isEmpty) ? 'Vui lòng nhập mật khẩu' : null,
-                ).animate().fadeIn(delay: 400.ms).slideX(begin: -0.1),
-                const SizedBox(height: 8),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Vui lòng nhập mật khẩu';
+                    if (v.length < 6) return 'Mật khẩu tối thiểu 6 ký tự';
+                    return null;
+                  },
+                ).animate().fadeIn(delay: 400.ms, duration: 400.ms).slideY(begin: 0.1, duration: 300.ms),
+
+                const SizedBox(height: 10),
+
                 Align(
                   alignment: Alignment.centerRight,
                   child: GestureDetector(
                     onTap: () => Navigator.pushNamed(context, '/forgot-password'),
-                    child: const Text('Quên mật khẩu?', style: TextStyle(color: AppColors.primaryStart, fontSize: 13, fontWeight: FontWeight.w500)),
+                    child: Text(
+                      'Quên mật khẩu?',
+                      style: AppTextStyles.sectionAction,
+                    ),
                   ),
-                ).animate().fadeIn(delay: 450.ms),
-                const SizedBox(height: 20),
+                ).animate().fadeIn(delay: 450.ms, duration: 300.ms),
+
+                const SizedBox(height: 24),
+
                 CustomButton(
                   text: 'Đăng nhập',
                   onPressed: _handleLogin,
                   isLoading: authProvider.isLoading,
                   icon: Icons.login_rounded,
-                ).animate().fadeIn(delay: 500.ms),
-                const SizedBox(height: 20),
+                ).animate().fadeIn(delay: 500.ms, duration: 400.ms),
+
+                const SizedBox(height: 24),
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text('Chưa có tài khoản? ', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
                     GestureDetector(
                       onTap: () => Navigator.pushNamed(context, '/register'),
-                      child: const Text('Đăng ký ngay', style: TextStyle(color: AppColors.primaryStart, fontWeight: FontWeight.w600, fontSize: 14)),
+                      child: Text(
+                        'Đăng ký ngay',
+                        style: AppTextStyles.sectionAction.copyWith(fontSize: 14),
+                      ),
                     ),
                   ],
-                ).animate().fadeIn(delay: 600.ms),
-                const SizedBox(height: 24),
-                // Demo accounts
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryStart.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.primaryStart.withValues(alpha: 0.15)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('🔑 Tài khoản demo:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                      const SizedBox(height: 8),
-                      _buildDemoAccount('Khách hàng', '0987654321', '123456'),
-                      const SizedBox(height: 4),
-                      _buildDemoAccount('Admin', '0901234567', '123456'),
-                    ],
-                  ),
-                ).animate().fadeIn(delay: 700.ms),
+                ).animate().fadeIn(delay: 600.ms, duration: 400.ms),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDemoAccount(String role, String phone, String pass) {
-    return GestureDetector(
-      onTap: () {
-        _phoneController.text = phone;
-        _passwordController.text = pass;
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Text(
-          '$role: $phone / $pass',
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontFamily: 'monospace'),
         ),
       ),
     );

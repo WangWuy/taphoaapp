@@ -275,6 +275,14 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                                         ),
                                       ),
                                       const Icon(Icons.chevron_right_rounded, color: AppColors.textLight, size: 22),
+                                      if (!product.isActive)
+                                        IconButton(
+                                          icon: const Icon(Icons.visibility_rounded, color: Color(0xFF059669), size: 22),
+                                          tooltip: 'Kích hoạt lại',
+                                          onPressed: () => _toggleActive(product),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                                        ),
                                     ],
                                   ),
                                 ),
@@ -314,6 +322,22 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _toggleActive(Product product) async {
+    final response = await _api.patch('${ApiConstants.adminProducts}/${product.id}/toggle-active');
+    if (response.success) {
+      _loadProducts();
+      if (mounted) {
+        final newStatus = !(product.isActive);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(newStatus ? 'Đã kích hoạt sản phẩm' : 'Đã ẩn sản phẩm'),
+            backgroundColor: const Color(0xFF059669),
+          ),
+        );
+      }
+    }
   }
 
   Future<bool> _confirmDelete(Product product) async {

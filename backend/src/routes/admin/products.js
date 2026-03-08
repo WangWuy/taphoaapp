@@ -12,6 +12,7 @@ router.get('/', productController.adminListProducts);
 router.post('/', validate(createProduct), productController.createProduct);
 router.put('/:id', validate(updateProduct), productController.updateProduct);
 router.patch('/:id/stock', validate(updateStock), productController.updateStock);
+router.patch('/:id/toggle-active', productController.toggleActive);
 router.delete('/:id', productController.deleteProduct);
 
 module.exports = router;

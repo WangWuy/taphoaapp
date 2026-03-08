@@ -136,7 +136,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                                     const SizedBox(height: 2),
                                   ],
                                   Text(
-                                    '${currencyFormat.format(product.price)}₫',
+                                    '${currencyFormat.format(product.sellingPrice)}₫',
                                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.primaryStart),
                                   ),
                                   const SizedBox(height: 8),

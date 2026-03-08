@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../constants/app_colors.dart';
 import '../../services/api_service.dart';
 import '../../constants/api_constants.dart';
@@ -98,14 +99,21 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
                         ),
                         child: Row(
                           children: [
-                            // Category icon/image
-                            Container(
-                              width: 48, height: 48,
-                              decoration: BoxDecoration(
+                            // Category image/icon
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                width: 48, height: 48,
                                 color: AppColors.primaryStart.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
+                                child: cat['image_url'] != null && (cat['image_url'] as String).isNotEmpty
+                                    ? CachedNetworkImage(
+                                        imageUrl: ApiConstants.getFullImageUrl(cat['image_url'])!,
+                                        fit: BoxFit.cover,
+                                        placeholder: (_, __) => const Icon(Icons.category_rounded, color: AppColors.primaryStart, size: 24),
+                                        errorWidget: (_, __, ___) => const Icon(Icons.category_rounded, color: AppColors.primaryStart, size: 24),
+                                      )
+                                    : const Icon(Icons.category_rounded, color: AppColors.primaryStart, size: 24),
                               ),
-                              child: const Icon(Icons.category_rounded, color: AppColors.primaryStart, size: 24),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
