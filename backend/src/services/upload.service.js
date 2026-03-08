@@ -22,6 +22,13 @@ if (isCloudinaryConfigured()) {
 
 const uploadToCloudinary = (fileBuffer, folder = 'taphoa') => {
     return new Promise((resolve, reject) => {
+        logger.debug(`☁️  Cloudinary upload starting (${fileBuffer.length} bytes)`);
+
+        // Timeout safety net — 30s max for Cloudinary upload
+        const timeout = setTimeout(() => {
+            reject(new Error('Cloudinary upload timeout (30s)'));
+        }, 30000);
+
         const stream = cloudinary.uploader.upload_stream(
             {
                 folder,
@@ -32,10 +39,23 @@ const uploadToCloudinary = (fileBuffer, folder = 'taphoa') => {
                 ],
             },
             (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
+                clearTimeout(timeout);
+                if (error) {
+                    logger.error('☁️  Cloudinary upload error:', error.message);
+                    reject(error);
+                } else {
+                    logger.debug(`☁️  Cloudinary upload success: ${result.secure_url}`);
+                    resolve(result);
+                }
             }
         );
+
+        stream.on('error', (err) => {
+            clearTimeout(timeout);
+            logger.error('☁️  Cloudinary stream error:', err.message);
+            reject(err);
+        });
+
         streamifier.createReadStream(fileBuffer).pipe(stream);
     });
 };
@@ -53,15 +73,22 @@ const uploadToLocal = (file) => {
 };
 
 const uploadImage = async (file) => {
+    logger.info(`📤 Upload request: ${file.originalname} (${file.size} bytes, ${file.mimetype})`);
+
     if (isCloudinaryConfigured()) {
-        const result = await uploadToCloudinary(file.buffer);
-        return {
-            url: result.secure_url,
-            public_id: result.public_id,
-            size: result.bytes,
-            width: result.width,
-            height: result.height,
-        };
+        try {
+            const result = await uploadToCloudinary(file.buffer);
+            return {
+                url: result.secure_url,
+                public_id: result.public_id,
+                size: result.bytes,
+                width: result.width,
+                height: result.height,
+            };
+        } catch (error) {
+            logger.error(`📤 Upload failed: ${error.message}`);
+            throw error;
+        }
     }
 
     // Fallback to local storage in development

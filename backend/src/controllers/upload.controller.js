@@ -23,12 +23,22 @@ exports.uploadMiddleware = upload.single('image');
 exports.uploadImage = catchAsync(async (req, res) => {
     if (!req.file) throw new AppError('Vui lòng chọn file ảnh', 400);
 
-    const result = await uploadService.uploadImage(req.file);
+    const logger = require('../utils/logger');
+    logger.info(`📤 Controller: file received - ${req.file.originalname} (${req.file.size} bytes, ${req.file.mimetype})`);
 
-    res.json({
-        status: 'success',
-        data: result,
-    });
+    try {
+        const result = await uploadService.uploadImage(req.file);
+        res.json({
+            status: 'success',
+            data: result,
+        });
+    } catch (error) {
+        logger.error(`📤 Controller: upload failed - ${error.message}`, { stack: error.stack });
+        res.status(500).json({
+            status: 'error',
+            message: `Upload thất bại: ${error.message}`,
+        });
+    }
 });
 
 exports.handleMulterError = (err, req, res, next) => {

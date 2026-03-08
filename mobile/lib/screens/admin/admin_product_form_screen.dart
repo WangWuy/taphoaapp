@@ -160,7 +160,16 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
     if (response.success && response.data != null) {
       return response.data['url'] as String;
     }
-    return _imageUrl;
+    // Upload failed — notify caller
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response.message ?? 'Upload ảnh thất bại'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+    return null; // Return null to signal failure
   }
 
   Future<void> _save() async {
@@ -168,7 +177,15 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
     setState(() => _isSaving = true);
 
     // Upload image first if picked
-    final uploadedUrl = await _uploadPickedImage();
+    String? uploadedUrl = _imageUrl;
+    if (_pickedImage != null) {
+      uploadedUrl = await _uploadPickedImage();
+      if (uploadedUrl == null && _pickedImage != null) {
+        // Upload failed, abort save
+        setState(() => _isSaving = false);
+        return;
+      }
+    }
 
     final body = <String, dynamic>{
       'name': _nameController.text.trim(),

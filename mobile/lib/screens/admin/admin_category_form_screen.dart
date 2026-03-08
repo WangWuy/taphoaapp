@@ -119,14 +119,31 @@ class _AdminCategoryFormScreenState extends State<AdminCategoryFormScreen> {
     if (response.success && response.data != null) {
       return response.data['url'] as String;
     }
-    return _imageUrl;
+    // Upload failed — notify caller
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response.message ?? 'Upload ảnh thất bại'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+    return null; // Return null to signal failure
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
 
-    final uploadedUrl = await _uploadPickedImage();
+    String? uploadedUrl = _imageUrl;
+    if (_pickedImage != null) {
+      uploadedUrl = await _uploadPickedImage();
+      if (uploadedUrl == null && _pickedImage != null) {
+        // Upload failed, abort save
+        setState(() => _isSaving = false);
+        return;
+      }
+    }
 
     final body = {
       'name': _nameController.text.trim(),

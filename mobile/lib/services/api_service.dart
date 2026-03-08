@@ -121,22 +121,42 @@ class ApiService {
   }
 
   // ─── UPLOAD IMAGE ──────────────────────────────────────
-  Future<ApiResponse> uploadImage(File imageFile) async {
-    try {
-      final uri = _buildUri('/upload');
-      final request = http.MultipartRequest('POST', uri);
-      if (_token != null) {
-        request.headers['Authorization'] = 'Bearer $_token';
-      }
-      request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
+  static const Duration _uploadTimeout = Duration(seconds: 60);
 
-      final streamedResponse = await request.send().timeout(_timeout);
-      final response = await http.Response.fromStream(streamedResponse);
-      return _processResponse(response);
-    } catch (e) {
-      debugPrint('UPLOAD error: $e');
-      return ApiResponse(success: false, message: _friendlyError(e));
+  Future<ApiResponse> uploadImage(File imageFile) async {
+    for (int attempt = 0; attempt <= 1; attempt++) {
+      try {
+        final uri = _buildUri('/upload');
+        debugPrint('📤 UPLOAD attempt ${attempt + 1}: $uri');
+        debugPrint('📤 File: ${imageFile.path} (${await imageFile.length()} bytes)');
+
+        final request = http.MultipartRequest('POST', uri);
+        if (_token != null) {
+          request.headers['Authorization'] = 'Bearer $_token';
+        }
+        request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
+
+        final streamedResponse = await request.send().timeout(_uploadTimeout);
+        final response = await http.Response.fromStream(streamedResponse);
+        debugPrint('📤 UPLOAD response: ${response.statusCode} ${response.body.length > 200 ? response.body.substring(0, 200) : response.body}');
+
+        // Auto-refresh on 401 (first attempt only)
+        if (response.statusCode == 401 && attempt == 0 && _refreshToken != null) {
+          debugPrint('📤 UPLOAD got 401, trying token refresh...');
+          final refreshed = await _tryRefreshToken();
+          if (refreshed) continue;
+        }
+
+        return _processResponse(response);
+      } catch (e) {
+        debugPrint('📤 UPLOAD error (attempt ${attempt + 1}): $e');
+        if (attempt == 1) {
+          return ApiResponse(success: false, message: _friendlyError(e));
+        }
+        await Future.delayed(const Duration(seconds: 1));
+      }
     }
+    return ApiResponse(success: false, message: 'Upload thất bại sau nhiều lần thử');
   }
 
   // ─── Request with auto-retry on 401 ───────────────────
