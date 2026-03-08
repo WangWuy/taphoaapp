@@ -81,9 +81,13 @@ const startServer = async () => {
         await sequelize.authenticate();
         logger.info('✅ Database connection established successfully.');
 
-        if (process.env.NODE_ENV !== 'production') {
+        // Sync database models
+        if (process.env.NODE_ENV === 'production') {
+            await sequelize.sync(); // Create tables if not exist (safe for production)
+            logger.info('✅ Database models synchronized (production).');
+        } else {
             await sequelize.sync({ alter: true });
-            logger.info('✅ Database models synchronized.');
+            logger.info('✅ Database models synchronized (dev - alter mode).');
         }
 
         // Seed default config if not exists
