@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
 
@@ -146,7 +148,18 @@ class ApiService {
         if (_token != null) {
           request.headers['Authorization'] = 'Bearer $_token';
         }
-        request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
+
+        // Explicitly set content-type from extension (fromPath may default to octet-stream)
+        final ext = p.extension(imageFile.path).toLowerCase();
+        final mimeMap = {'.jpg': 'jpeg', '.jpeg': 'jpeg', '.png': 'png', '.gif': 'gif', '.webp': 'webp'};
+        final subtype = mimeMap[ext] ?? 'jpeg';
+        debugPrint('📤 File ext: $ext → image/$subtype');
+
+        request.files.add(await http.MultipartFile.fromPath(
+          'image',
+          imageFile.path,
+          contentType: MediaType('image', subtype),
+        ));
 
         final streamedResponse = await request.send().timeout(_uploadTimeout);
         final response = await http.Response.fromStream(streamedResponse);
