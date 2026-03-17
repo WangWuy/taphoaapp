@@ -33,11 +33,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   final List<_BannerData> _banners = [
     _BannerData(
-      title: 'Miễn phí ship từ 150K',
-      subtitle: 'Hàng tiêu dùng, thực phẩm & gia vị',
-      badge: '🛒 Khuyến mãi hôm nay',
+      title: 'Chào mừng đến TạpHóa',
+      subtitle: 'Tiện lợi • Giá tốt • Giao tận nhà',
+      badge: '🏪 Tạp Hóa Online',
       gradient: AppColors.bannerEmerald,
-      icon: Icons.local_shipping_rounded,
+      icon: Icons.storefront_rounded,
+      imagePath: 'assets/images/banners/banner_welcome.png',
     ),
     _BannerData(
       title: 'Giảm giá đến 30%',
@@ -45,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       badge: '🔥 Hot deals',
       gradient: AppColors.bannerAmber,
       icon: Icons.local_fire_department_rounded,
+      imagePath: 'assets/images/banners/banner_promo.png',
     ),
     _BannerData(
       title: 'Giao nhanh 2h',
@@ -52,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       badge: '⚡ Siêu tốc',
       gradient: AppColors.bannerBlue,
       icon: Icons.bolt_rounded,
+      imagePath: 'assets/images/banners/banner_delivery.png',
     ),
   ];
 
@@ -249,9 +252,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     style: AppTextStyles.bodyMedium,
                   ),
                   const SizedBox(height: 2),
-                  const Text(
-                    'TạpHóa Shop',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                  Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.asset('assets/images/logo_icon.png', width: 28, height: 28),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'TạpHóa',
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -345,12 +357,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               final banner = _banners[index];
               return Container(
                 margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: banner.gradient,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
@@ -361,7 +369,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ],
                 ),
                 child: Stack(
+                  fit: StackFit.expand,
                   children: [
+                    // Background image
+                    if (banner.imagePath != null)
+                      Image.asset(
+                        banner.imagePath!,
+                        fit: BoxFit.cover,
+                      ),
+                    // Gradient overlay for text readability
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            banner.gradient.first.withValues(alpha: banner.imagePath != null ? 0.7 : 1.0),
+                            banner.gradient.last.withValues(alpha: banner.imagePath != null ? 0.5 : 1.0),
+                          ],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                      ),
+                    ),
                     // Decorative circles
                     Positioned(
                       right: -20,
@@ -369,18 +397,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       child: Container(
                         width: 120,
                         height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: 0.1),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: 30,
-                      bottom: -30,
-                      child: Container(
-                        width: 80,
-                        height: 80,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.white.withValues(alpha: 0.08),
@@ -397,7 +413,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: Colors.white.withValues(alpha: 0.25),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -408,12 +424,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           const SizedBox(height: 10),
                           Text(
                             banner.title,
-                            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              shadows: [Shadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             banner.subtitle,
-                            style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13),
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 13,
+                              shadows: const [Shadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 1))],
+                            ),
                           ),
                         ],
                       ),
@@ -508,6 +533,7 @@ class _BannerData {
   final String badge;
   final List<Color> gradient;
   final IconData icon;
+  final String? imagePath;
 
   const _BannerData({
     required this.title,
@@ -515,5 +541,6 @@ class _BannerData {
     required this.badge,
     required this.gradient,
     required this.icon,
+    this.imagePath,
   });
 }

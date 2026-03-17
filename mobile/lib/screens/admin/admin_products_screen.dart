@@ -26,7 +26,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   bool _isLoading = true;
 
   String? _selectedCategoryId;
-  String _statusFilter = 'all'; // all, active, inactive, out_of_stock
+  String _statusFilter = 'active';
 
   @override
   void initState() {
@@ -174,13 +174,13 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                _statusChip('Tất cả', 'all'),
-                const SizedBox(width: 8),
                 _statusChip('Đang bán', 'active'),
                 const SizedBox(width: 8),
                 _statusChip('Đã ẩn', 'inactive'),
                 const SizedBox(width: 8),
                 _statusChip('Hết hàng', 'out_of_stock'),
+                const SizedBox(width: 8),
+                _statusChip('Tất cả', 'all'),
               ],
             ),
           ),

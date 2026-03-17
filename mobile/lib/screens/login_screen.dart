@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../providers/auth_provider.dart';
@@ -18,6 +19,26 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPhone = prefs.getString('saved_phone');
+    final savedPassword = prefs.getString('saved_password');
+    if (savedPhone != null && savedPassword != null) {
+      setState(() {
+        _phoneController.text = savedPhone;
+        _passwordController.text = savedPassword;
+        _rememberMe = true;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -36,6 +57,16 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (success && mounted) {
+      // Save or clear credentials
+      final prefs = await SharedPreferences.getInstance();
+      if (_rememberMe) {
+        await prefs.setString('saved_phone', _phoneController.text.trim());
+        await prefs.setString('saved_password', _passwordController.text);
+      } else {
+        await prefs.remove('saved_phone');
+        await prefs.remove('saved_password');
+      }
+
       final route = authProvider.isAdmin ? '/admin-home' : '/home';
       Navigator.pushReplacementNamed(context, route);
     } else if (mounted && authProvider.error != null) {
@@ -75,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: 88,
                   height: 88,
                   decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(26),
                     boxShadow: [
                       BoxShadow(
@@ -85,7 +116,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.storefront_rounded, size: 40, color: Colors.white),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: Image.asset(
+                      'assets/images/logo_splash.png',
+                      width: 72,
+                      height: 72,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 )
                     .animate()
                     .scale(begin: const Offset(0.6, 0.6), duration: 500.ms, curve: Curves.elasticOut)
@@ -131,15 +170,38 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 10),
 
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/forgot-password'),
-                    child: Text(
-                      'Quên mật khẩu?',
-                      style: AppTextStyles.sectionAction,
+                // Remember me + Forgot password row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () => setState(() => _rememberMe = !_rememberMe),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 22, height: 22,
+                            child: Checkbox(
+                              value: _rememberMe,
+                              onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                              activeColor: AppColors.primaryStart,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text('Ghi nhớ đăng nhập', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                        ],
+                      ),
                     ),
-                  ),
+                    GestureDetector(
+                      onTap: () => Navigator.pushNamed(context, '/forgot-password'),
+                      child: Text(
+                        'Quên mật khẩu?',
+                        style: AppTextStyles.sectionAction,
+                      ),
+                    ),
+                  ],
                 ).animate().fadeIn(delay: 450.ms, duration: 300.ms),
 
                 const SizedBox(height: 24),

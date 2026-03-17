@@ -39,7 +39,24 @@ class _AdminCategoryFormScreenState extends State<AdminCategoryFormScreen> {
       _sortOrderController.text = (widget.categoryData!['sort_order'] ?? 0).toString();
       _isActive = widget.categoryData!['is_active'] ?? true;
     } else {
-      _sortOrderController.text = '0';
+      _loadNextSortOrder();
+    }
+  }
+
+  Future<void> _loadNextSortOrder() async {
+    final response = await _api.get(ApiConstants.adminCategories);
+    if (response.success && response.data != null) {
+      final categories = response.data as List;
+      int maxOrder = 0;
+      for (final cat in categories) {
+        final order = cat['sort_order'] ?? 0;
+        if (order > maxOrder) maxOrder = order;
+      }
+      if (mounted) {
+        setState(() => _sortOrderController.text = (maxOrder + 1).toString());
+      }
+    } else {
+      _sortOrderController.text = '1';
     }
   }
 
